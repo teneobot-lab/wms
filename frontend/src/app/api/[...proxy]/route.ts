@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Backend API URL - change this to your actual backend URL
-const API_BASE_URL = 'https://wms-api.teneobot.com';
+// Backend API URL - ngrok tunnel URL
+const API_BASE_URL = 'https://unmystic-prepsychological-bryon.ngrok-free.dev';
 
 export async function GET(request: NextRequest) {
   const path = request.nextUrl.pathname.replace('/api/proxy/', '');
