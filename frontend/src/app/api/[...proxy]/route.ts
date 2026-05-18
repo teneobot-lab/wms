@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_BASE_URL = process.env.API_BASE_URL || 'https://wms-api.teneobot.com';
+// Backend API URL - change this to your actual backend URL
+const API_BASE_URL = 'https://wms-api.teneobot.com';
 
 export async function GET(request: NextRequest) {
   const path = request.nextUrl.pathname.replace('/api/proxy/', '');
   const searchParams = request.nextUrl.search;
+  const url = `${API_BASE_URL}/api/${path}${searchParams}`;
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/${path}${searchParams}`, {
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': request.headers.get('Authorization') || '',
@@ -20,6 +22,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error('Proxy GET error:', error);
+    console.error('URL attempted:', url);
     return NextResponse.json(
       { success: false, message: 'Failed to connect to API server' },
       { status: 502 }
@@ -29,10 +32,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const path = request.nextUrl.pathname.replace('/api/proxy/', '');
-  const body = await request.json();
+  const url = `${API_BASE_URL}/api/${path}`;
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/${path}`, {
+    const body = await request.json();
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Authorization': request.headers.get('Authorization') || '',
@@ -45,6 +49,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error('Proxy POST error:', error);
+    console.error('URL attempted:', url);
     return NextResponse.json(
       { success: false, message: 'Failed to connect to API server' },
       { status: 502 }
@@ -54,10 +59,11 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   const path = request.nextUrl.pathname.replace('/api/proxy/', '');
-  const body = await request.json();
+  const url = `${API_BASE_URL}/api/${path}`;
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/${path}`, {
+    const body = await request.json();
+    const response = await fetch(url, {
       method: 'PUT',
       headers: {
         'Authorization': request.headers.get('Authorization') || '',
@@ -70,6 +76,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error('Proxy PUT error:', error);
+    console.error('URL attempted:', url);
     return NextResponse.json(
       { success: false, message: 'Failed to connect to API server' },
       { status: 502 }
@@ -79,9 +86,10 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   const path = request.nextUrl.pathname.replace('/api/proxy/', '');
+  const url = `${API_BASE_URL}/api/${path}`;
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/${path}`, {
+    const response = await fetch(url, {
       method: 'DELETE',
       headers: {
         'Authorization': request.headers.get('Authorization') || '',
@@ -93,6 +101,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error('Proxy DELETE error:', error);
+    console.error('URL attempted:', url);
     return NextResponse.json(
       { success: false, message: 'Failed to connect to API server' },
       { status: 502 }
@@ -102,10 +111,11 @@ export async function DELETE(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const path = request.nextUrl.pathname.replace('/api/proxy/', '');
-  const body = await request.json().catch(() => ({}));
+  const url = `${API_BASE_URL}/api/${path}`;
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/${path}`, {
+    const body = await request.json().catch(() => ({}));
+    const response = await fetch(url, {
       method: 'PATCH',
       headers: {
         'Authorization': request.headers.get('Authorization') || '',
@@ -118,6 +128,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error('Proxy PATCH error:', error);
+    console.error('URL attempted:', url);
     return NextResponse.json(
       { success: false, message: 'Failed to connect to API server' },
       { status: 502 }
