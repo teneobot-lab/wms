@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, ReactNode } from 'react';
-import Fuse from 'fuse.js';
+import Fuse, { type FuseResultMatch } from 'fuse.js';
 import { api } from '@/lib/api';
 
 interface SearchOption {
@@ -158,7 +158,7 @@ export function SearchAutocomplete({
   };
 
   // Highlight matched text
-  const highlight = (text: string, matches: readonly Fuse.FuseResultMatch[] | undefined, key: string) => {
+  const highlight = (text: string, matches: readonly FuseResultMatch[] | undefined, key: string) => {
     if (!matches) return text;
     const match = matches.find(m => m.key === key);
     if (!match || !match.indices.length) return text;

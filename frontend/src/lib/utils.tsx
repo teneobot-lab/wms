@@ -1,11 +1,12 @@
-import Fuse from 'fuse.js';
+import Fuse, { type FuseResultMatch, type IFuseOptions } from 'fuse.js';
+import { ReactNode } from 'react';
 
 export interface SearchItem {
   id: string;
   [key: string]: unknown;
 }
 
-const fuseOptions: Fuse.IFuseOptions<SearchItem> = {
+const fuseOptions: IFuseOptions<SearchItem> = {
   threshold: 0.35,
   distance: 100,
   includeMatches: true,
@@ -24,13 +25,13 @@ export function createFuseSearch<T extends SearchItem>(
   });
 }
 
-export function highlightMatches(text: string, matches: readonly Fuse.FuseResultMatch[] | undefined, key: string): React.ReactNode {
+export function highlightMatches(text: string, matches: readonly FuseResultMatch[] | undefined, key: string): ReactNode {
   if (!matches) return text;
 
   const match = matches.find(m => m.key === key);
   if (!match || !match.indices.length) return text;
 
-  const result: React.ReactNode[] = [];
+  const result: ReactNode[] = [];
   let lastIndex = 0;
 
   for (const [start, end] of match.indices) {
