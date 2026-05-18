@@ -58,7 +58,7 @@ export function Navbar() {
         {/* Global search hint */}
         <button className="flex items-center gap-2 text-xs text-text-muted border border-border rounded px-3 py-1.5 hover:border-primary-300 transition-colors">
           <span>🔍</span>
-          {!document.hidden && <span className="hidden sm:inline">Search...</span>}
+          <span className="hidden sm:inline">Search...</span>
           <kbd className="hidden sm:inline text-[10px] bg-bg-elevated px-1 rounded">Ctrl+K</kbd>
         </button>
 
