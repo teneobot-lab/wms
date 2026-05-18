@@ -1,10 +1,10 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-// Use relative path for API calls (Vercel rewrites will proxy to backend)
+// Use proxy route for API calls
 const API_BASE_URL = '';
 
 export const api = axios.create({
-  baseURL: `${API_BASE_URL}/api`,
+  baseURL: `${API_BASE_URL}/api/proxy`,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -34,7 +34,7 @@ api.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refreshToken');
         if (refreshToken) {
-          const res = await axios.post(`/api/auth/refresh`, { refreshToken });
+          const res = await axios.post(`/api/proxy/auth/refresh`, { refreshToken });
           const { accessToken, refreshToken: newRefresh } = res.data.data;
           localStorage.setItem('accessToken', accessToken);
           localStorage.setItem('refreshToken', newRefresh);
