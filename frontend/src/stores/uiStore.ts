@@ -1,30 +1,8 @@
+'use client';
+
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 
 type Density = 'compact' | 'default';
-
-interface UIStorage {
-  getItem: (name: string) => string | null;
-  setItem: (name: string, value: string) => void;
-  removeItem: (name: string) => void;
-}
-
-const noopStorage: UIStorage = {
-  getItem: () => null,
-  setItem: () => {},
-  removeItem: () => {},
-};
-
-const getStorage = (): UIStorage => {
-  if (typeof window === 'undefined') {
-    return noopStorage;
-  }
-  return {
-    getItem: (name) => localStorage.getItem(name),
-    setItem: (name, value) => localStorage.setItem(name, value),
-    removeItem: (name) => localStorage.removeItem(name),
-  };
-};
 
 interface UIState {
   sidebarCollapsed: boolean;
@@ -35,32 +13,24 @@ interface UIState {
   setTableDensity: (density: Density) => void;
 }
 
-export const useUIStore = create<UIState>()(
-  persist(
-    (set) => ({
-      sidebarCollapsed: false,
-      tableDensity: 'default',
-      sidebarWidth: 220,
+export const useUIStore = create<UIState>()((set) => ({
+  sidebarCollapsed: false,
+  tableDensity: 'default',
+  sidebarWidth: 220,
 
-      toggleSidebar: () => {
-        set((state) => ({
-          sidebarCollapsed: !state.sidebarCollapsed,
-          sidebarWidth: state.sidebarCollapsed ? 220 : 52,
-        }));
-      },
+  toggleSidebar: () => {
+    set((state) => ({
+      sidebarCollapsed: !state.sidebarCollapsed,
+      sidebarWidth: state.sidebarCollapsed ? 220 : 52,
+    }));
+  },
 
-      setSidebarCollapsed: (collapsed) => {
-        set({ sidebarCollapsed: collapsed, sidebarWidth: collapsed ? 52 : 220 });
-      },
+  setSidebarCollapsed: (collapsed) => {
+    set({ sidebarCollapsed: collapsed, sidebarWidth: collapsed ? 52 : 220 });
+  },
 
-      setTableDensity: (density) => set({ tableDensity: density }),
-    }),
-    {
-      name: 'wms-ui',
-      storage: createJSONStorage(getStorage),
-    }
-  )
-);
+  setTableDensity: (density) => set({ tableDensity: density }),
+}));
 
 // Toast notifications store
 interface Toast {
