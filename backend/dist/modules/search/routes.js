@@ -1,0 +1,133 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const database_js_1 = require("../../config/database.js");
+const auth_js_1 = require("../../middleware/auth.js");
+const router = (0, express_1.Router)();
+// GET /api/search/products?q=
+router.get('/products', auth_js_1.authenticate, async (req, res, next) => {
+    try {
+        const q = req.query.q || '';
+        if (!q || q.length < 1) {
+            return res.json({ success: true, data: [] });
+        }
+        const products = await database_js_1.prisma.product.findMany({
+            where: {
+                isActive: true,
+                OR: [
+                    { name: { contains: q, mode: 'insensitive' } },
+                    { sku: { contains: q, mode: 'insensitive' } },
+                    { barcode: { contains: q, mode: 'insensitive' } },
+                ],
+            },
+            include: {
+                unit: true,
+                stocks: { select: { qty: true } },
+            },
+            take: 12,
+            orderBy: { name: 'asc' },
+        });
+        const data = products.map(p => {
+            const totalQty = p.stocks.reduce((sum, s) => sum + Number(s.qty), 0);
+            return {
+                id: p.id,
+                sku: p.sku,
+                name: p.name,
+                barcode: p.barcode,
+                unit: p.unit.name,
+                costPrice: Number(p.costPrice),
+                sellPrice: Number(p.sellPrice),
+                totalQty,
+                reorderPoint: p.reorderPoint,
+                isLowStock: totalQty <= p.reorderPoint,
+            };
+        });
+        res.json({ success: true, data });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+// GET /api/search/suppliers?q=
+router.get('/suppliers', auth_js_1.authenticate, async (req, res, next) => {
+    try {
+        const q = req.query.q || '';
+        if (!q || q.length < 1) {
+            return res.json({ success: true, data: [] });
+        }
+        const suppliers = await database_js_1.prisma.supplier.findMany({
+            where: {
+                isActive: true,
+                OR: [
+                    { name: { contains: q, mode: 'insensitive' } },
+                    { code: { contains: q, mode: 'insensitive' } },
+                ],
+            },
+            take: 12,
+            orderBy: { name: 'asc' },
+        });
+        res.json({ success: true, data: suppliers.map(s => ({ id: s.id, code: s.code, name: s.name, phone: s.phone, email: s.email })) });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+// GET /api/search/customers?q=
+router.get('/customers', auth_js_1.authenticate, async (req, res, next) => {
+    try {
+        const q = req.query.q || '';
+        if (!q || q.length < 1) {
+            return res.json({ success: true, data: [] });
+        }
+        const customers = await database_js_1.prisma.customer.findMany({
+            where: {
+                isActive: true,
+                OR: [
+                    { name: { contains: q, mode: 'insensitive' } },
+                    { code: { contains: q, mode: 'insensitive' } },
+                ],
+            },
+            take: 12,
+            orderBy: { name: 'asc' },
+        });
+        res.json({ success: true, data: customers.map(c => ({ id: c.id, code: c.code, name: c.name, phone: c.phone, email: c.email })) });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+// GET /api/search/bins?q=
+router.get('/bins', auth_js_1.authenticate, async (req, res, next) => {
+    try {
+        const q = req.query.q || '';
+        if (!q || q.length < 1) {
+            return res.json({ success: true, data: [] });
+        }
+        const bins = await database_js_1.prisma.bin.findMany({
+            where: {
+                code: { contains: q, mode: 'insensitive' },
+            },
+            include: {
+                rack: { include: { zone: { include: { warehouse: true } } } },
+            },
+            take: 12,
+            orderBy: { code: 'asc' },
+        });
+        res.json({
+            success: true,
+            data: bins.map(b => ({
+                id: b.id,
+                code: b.code,
+                rack: b.rack.code,
+                zone: b.rack.zone.name,
+                warehouse: b.rack.zone.warehouse.name,
+                fullPath: `${b.rack.zone.warehouse.name} > ${b.rack.zone.name} > ${b.rack.code} > ${b.code}`,
+            })),
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+exports.default = router;
+//# sourceMappingURL=routes.js.map
