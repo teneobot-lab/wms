@@ -1,5 +1,28 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+
+interface AuthStorage {
+  getItem: (name: string) => string | null;
+  setItem: (name: string, value: string) => void;
+  removeItem: (name: string) => void;
+}
+
+const noopStorage: AuthStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
+
+const getStorage = (): AuthStorage => {
+  if (typeof window === 'undefined') {
+    return noopStorage;
+  }
+  return {
+    getItem: (name) => localStorage.getItem(name),
+    setItem: (name, value) => localStorage.setItem(name, value),
+    removeItem: (name) => localStorage.removeItem(name),
+  };
+};
 
 export interface User {
   id: string;
@@ -33,18 +56,10 @@ export const useAuthStore = create<AuthState>()(
 
       setAuth: (user, accessToken, refreshToken) => {
         set({ user, accessToken, refreshToken, isAuthenticated: true });
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('accessToken', accessToken);
-          localStorage.setItem('refreshToken', refreshToken);
-        }
       },
 
       logout: () => {
         set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-        }
       },
 
       updateUser: (partial) => {
@@ -55,6 +70,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'wms-auth',
+      storage: createJSONStorage(getStorage),
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,

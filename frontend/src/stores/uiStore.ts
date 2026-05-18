@@ -1,7 +1,30 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 type Density = 'compact' | 'default';
+
+interface UIStorage {
+  getItem: (name: string) => string | null;
+  setItem: (name: string, value: string) => void;
+  removeItem: (name: string) => void;
+}
+
+const noopStorage: UIStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
+
+const getStorage = (): UIStorage => {
+  if (typeof window === 'undefined') {
+    return noopStorage;
+  }
+  return {
+    getItem: (name) => localStorage.getItem(name),
+    setItem: (name, value) => localStorage.setItem(name, value),
+    removeItem: (name) => localStorage.removeItem(name),
+  };
+};
 
 interface UIState {
   sidebarCollapsed: boolean;
@@ -32,7 +55,10 @@ export const useUIStore = create<UIState>()(
 
       setTableDensity: (density) => set({ tableDensity: density }),
     }),
-    { name: 'wms-ui' }
+    {
+      name: 'wms-ui',
+      storage: createJSONStorage(getStorage),
+    }
   )
 );
 

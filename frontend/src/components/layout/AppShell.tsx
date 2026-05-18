@@ -6,7 +6,7 @@ import { useUIStore, useToastStore } from '@/stores/uiStore';
 interface AppShellProps {
   sidebar: ReactNode;
   navbar: ReactNode;
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 export function AppShell({ sidebar, navbar, children }: AppShellProps) {
