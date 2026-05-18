@@ -126,7 +126,7 @@ router.post('/:id/confirm', authenticate, requireOperator, async (req, res, next
   } catch (err) { next(err); }
 });
 
-router.post('/:id/pick', authenticate, requireOperator, async (req, res, next) => {
+router.post('/:id/picking', authenticate, requireOperator, async (req, res, next) => {
   try {
     const so = await prisma.salesOrder.findUnique({
       where: { id: req.params.id },
@@ -295,6 +295,60 @@ router.put('/:id', authenticate, requireOperator, async (req, res, next) => {
       where: { id: req.params.id },
       data: req.body,
     });
+    res.json({ success: true, data: updated });
+  } catch (err) { next(err); }
+});
+
+router.post('/:id/ship', authenticate, requireOperator, async (req, res, next) => {
+  try {
+    const so = await prisma.salesOrder.findUnique({ where: { id: req.params.id } });
+    if (!so) throw new AppError(404, 'SO not found.', 'NOT_FOUND');
+    if (!['CONFIRMED', 'PICKING', 'PACKED'].includes(so.status)) {
+      throw new AppError(400, 'SO tidak dapat dikirim.', 'INVALID_STATUS');
+    }
+
+    const updated = await prisma.salesOrder.update({
+      where: { id: req.params.id },
+      data: { status: 'SHIPPED', shippedDate: new Date() },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: 'SHIP',
+        entity: 'SalesOrder',
+        entityId: so.id,
+        notes: `SO-${so.soNo} ditandai terkirim`,
+      },
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (err) { next(err); }
+});
+
+router.post('/:id/cancel', authenticate, requireOperator, async (req, res, next) => {
+  try {
+    const so = await prisma.salesOrder.findUnique({ where: { id: req.params.id } });
+    if (!so) throw new AppError(404, 'SO not found.', 'NOT_FOUND');
+    if (['SHIPPED', 'DELIVERED', 'CANCELLED'].includes(so.status)) {
+      throw new AppError(400, 'SO tidak dapat dibatalkan.', 'INVALID_STATUS');
+    }
+
+    const updated = await prisma.salesOrder.update({
+      where: { id: req.params.id },
+      data: { status: 'CANCELLED' },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: 'CANCEL',
+        entity: 'SalesOrder',
+        entityId: so.id,
+        notes: `SO-${so.soNo} dibatalkan`,
+      },
+    });
+
     res.json({ success: true, data: updated });
   } catch (err) { next(err); }
 });

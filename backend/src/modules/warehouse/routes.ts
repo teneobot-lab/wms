@@ -18,27 +18,38 @@ const warehouseSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
-router.get('/warehouses', authenticate, async (_req, res, next) => {
+router.get('/', authenticate, async (_req, res, next) => {
   try {
     const warehouses = await prisma.warehouse.findMany({
-      include: { zones: { include: { racks: { include: { bins: true } } } } },
       orderBy: { name: 'asc' },
     });
     res.json({ success: true, data: warehouses });
   } catch (err) { next(err); }
 });
 
-router.post('/warehouses', authenticate, requireOperator, validateBody(warehouseSchema), async (req, res, next) => {
+router.post('/', authenticate, requireOperator, validateBody(warehouseSchema), async (req, res, next) => {
   try {
     const warehouse = await prisma.warehouse.create({ data: req.body });
     res.status(201).json({ success: true, data: warehouse });
   } catch (err) { next(err); }
 });
 
-router.put('/warehouses/:id', authenticate, requireOperator, validateBody(warehouseSchema.partial()), async (req, res, next) => {
+router.put('/:id', authenticate, requireOperator, validateBody(warehouseSchema.partial()), async (req, res, next) => {
   try {
     const warehouse = await prisma.warehouse.update({ where: { id: req.params.id }, data: req.body });
     res.json({ success: true, data: warehouse });
+  } catch (err) { next(err); }
+});
+
+router.delete('/:id', authenticate, requireOperator, async (req, res, next) => {
+  try {
+    // Check if warehouse has zones
+    const zonesCount = await prisma.zone.count({ where: { warehouseId: req.params.id } });
+    if (zonesCount > 0) {
+      throw new AppError(400, 'Tidak dapat menghapus gudang yang masih memiliki zona aktif.', 'HAS_DEPENDENCIES');
+    }
+    await prisma.warehouse.delete({ where: { id: req.params.id } });
+    res.json({ success: true, message: 'Warehouse deleted.' });
   } catch (err) { next(err); }
 });
 
@@ -68,6 +79,24 @@ router.post('/zones', authenticate, requireOperator, validateBody(zoneSchema), a
   } catch (err) { next(err); }
 });
 
+router.put('/zones/:id', authenticate, requireOperator, validateBody(zoneSchema.partial()), async (req, res, next) => {
+  try {
+    const zone = await prisma.zone.update({ where: { id: req.params.id }, data: req.body });
+    res.json({ success: true, data: zone });
+  } catch (err) { next(err); }
+});
+
+router.delete('/zones/:id', authenticate, requireOperator, async (req, res, next) => {
+  try {
+    const racksCount = await prisma.rack.count({ where: { zoneId: req.params.id } });
+    if (racksCount > 0) {
+      throw new AppError(400, 'Tidak dapat menghapus zona yang masih memiliki rak aktif.', 'HAS_DEPENDENCIES');
+    }
+    await prisma.zone.delete({ where: { id: req.params.id } });
+    res.json({ success: true, message: 'Zone deleted.' });
+  } catch (err) { next(err); }
+});
+
 // ─── RACK ─────────────────────────────────────────────────────────────────────
 
 const rackSchema = z.object({
@@ -90,6 +119,24 @@ router.post('/racks', authenticate, requireOperator, validateBody(rackSchema), a
   try {
     const rack = await prisma.rack.create({ data: req.body });
     res.status(201).json({ success: true, data: rack });
+  } catch (err) { next(err); }
+});
+
+router.put('/racks/:id', authenticate, requireOperator, validateBody(rackSchema.partial()), async (req, res, next) => {
+  try {
+    const rack = await prisma.rack.update({ where: { id: req.params.id }, data: req.body });
+    res.json({ success: true, data: rack });
+  } catch (err) { next(err); }
+});
+
+router.delete('/racks/:id', authenticate, requireOperator, async (req, res, next) => {
+  try {
+    const binsCount = await prisma.bin.count({ where: { rackId: req.params.id } });
+    if (binsCount > 0) {
+      throw new AppError(400, 'Tidak dapat menghapus rak yang masih memiliki bin aktif.', 'HAS_DEPENDENCIES');
+    }
+    await prisma.rack.delete({ where: { id: req.params.id } });
+    res.json({ success: true, message: 'Rack deleted.' });
   } catch (err) { next(err); }
 });
 
@@ -118,6 +165,20 @@ router.post('/bins', authenticate, requireOperator, validateBody(binSchema), asy
   } catch (err) { next(err); }
 });
 
+router.put('/bins/:id', authenticate, requireOperator, validateBody(binSchema.partial()), async (req, res, next) => {
+  try {
+    const bin = await prisma.bin.update({ where: { id: req.params.id }, data: req.body });
+    res.json({ success: true, data: bin });
+  } catch (err) { next(err); }
+});
+
+router.delete('/bins/:id', authenticate, requireOperator, async (req, res, next) => {
+  try {
+    await prisma.bin.delete({ where: { id: req.params.id } });
+    res.json({ success: true, message: 'Bin deleted.' });
+  } catch (err) { next(err); }
+});
+
 // ─── CATEGORIES ───────────────────────────────────────────────────────────────
 
 const categorySchema = z.object({
@@ -143,6 +204,25 @@ router.post('/categories', authenticate, requireOperator, validateBody(categoryS
   } catch (err) { next(err); }
 });
 
+router.put('/categories/:id', authenticate, requireOperator, validateBody(categorySchema.partial()), async (req, res, next) => {
+  try {
+    const category = await prisma.category.update({ where: { id: req.params.id }, data: req.body });
+    res.json({ success: true, data: category });
+  } catch (err) { next(err); }
+});
+
+router.delete('/categories/:id', authenticate, requireOperator, async (req, res, next) => {
+  try {
+    // Check if category has products
+    const productsCount = await prisma.product.count({ where: { categoryId: req.params.id } });
+    if (productsCount > 0) {
+      throw new AppError(400, 'Tidak dapat menghapus kategori yang masih memiliki produk.', 'HAS_DEPENDENCIES');
+    }
+    await prisma.category.delete({ where: { id: req.params.id } });
+    res.json({ success: true, message: 'Category deleted.' });
+  } catch (err) { next(err); }
+});
+
 // ─── UNITS ─────────────────────────────────────────────────────────────────────
 
 const unitSchema = z.object({
@@ -161,6 +241,20 @@ router.post('/units', authenticate, requireOperator, validateBody(unitSchema), a
   try {
     const unit = await prisma.unit.create({ data: req.body });
     res.status(201).json({ success: true, data: unit });
+  } catch (err) { next(err); }
+});
+
+router.put('/units/:id', authenticate, requireOperator, validateBody(unitSchema.partial()), async (req, res, next) => {
+  try {
+    const unit = await prisma.unit.update({ where: { id: req.params.id }, data: req.body });
+    res.json({ success: true, data: unit });
+  } catch (err) { next(err); }
+});
+
+router.delete('/units/:id', authenticate, requireOperator, async (req, res, next) => {
+  try {
+    await prisma.unit.delete({ where: { id: req.params.id } });
+    res.json({ success: true, message: 'Unit deleted.' });
   } catch (err) { next(err); }
 });
 

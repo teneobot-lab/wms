@@ -130,4 +130,66 @@ router.get('/bins', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/search/categories?q=
+router.get('/categories', authenticate, async (req, res, next) => {
+  try {
+    const q = (req.query.q as string) || '';
+    const where = q
+      ? {
+          OR: [
+            { name: { contains: q, mode: 'insensitive' } },
+            { code: { contains: q, mode: 'insensitive' } },
+          ],
+        }
+      : {};
+
+    const categories = await prisma.category.findMany({
+      where,
+      include: { parent: true },
+      take: 12,
+      orderBy: { name: 'asc' },
+    });
+
+    res.json({
+      success: true,
+      data: categories.map(c => ({
+        id: c.id,
+        code: c.code,
+        name: c.name,
+        parent: c.parent ? { id: c.parent.id, name: c.parent.name } : null,
+      })),
+    });
+  } catch (err) { next(err); }
+});
+
+// GET /api/search/units?q=
+router.get('/units', authenticate, async (req, res, next) => {
+  try {
+    const q = (req.query.q as string) || '';
+    const where = q
+      ? {
+          OR: [
+            { name: { contains: q, mode: 'insensitive' } },
+            { code: { contains: q, mode: 'insensitive' } },
+          ],
+        }
+      : {};
+
+    const units = await prisma.unit.findMany({
+      where,
+      take: 12,
+      orderBy: { name: 'asc' },
+    });
+
+    res.json({
+      success: true,
+      data: units.map(u => ({
+        id: u.id,
+        code: u.code,
+        name: u.name,
+      })),
+    });
+  } catch (err) { next(err); }
+});
+
 export default router;

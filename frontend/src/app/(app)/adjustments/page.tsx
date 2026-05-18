@@ -1,9 +1,7 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
-
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -38,6 +36,7 @@ const columns: ColumnDef<Adjustment, any>[] = [
 ];
 
 export default function AdjustmentsPage() {
+  const router = useRouter();
   const [page] = useState(1);
 
   const { data, isLoading } = useQuery({
@@ -55,7 +54,7 @@ export default function AdjustmentsPage() {
           <h1 className="text-lg font-semibold text-text-primary">Stock Adjustments</h1>
           <p className="text-xs text-text-muted">{data?.pagination?.total || 0} adjustments</p>
         </div>
-        <button className="btn btn-primary btn-default">+ New Adjustment</button>
+        <button onClick={() => router.push('/adjustments/new')} className="btn btn-primary btn-default">+ New Adjustment</button>
       </div>
 
       <DataTable

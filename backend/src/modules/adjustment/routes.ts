@@ -54,18 +54,20 @@ router.post(
     z.object({
       reason: z.string().min(1),
       notes: z.string().optional(),
+      status: z.enum(['DRAFT', 'SUBMITTED']).optional().default('SUBMITTED'),
       items: z.array(z.object({
         productId: z.string(),
         binId: z.string(),
-        qtySystem: z.number().min(0),
-        qtyActual: z.number().min(0),
+        qtySystem: z.number().min(0).optional(),
+        actualStock: z.number().min(0),
+        systemStock: z.number().min(0).optional(),
         notes: z.string().optional(),
       })).min(1),
     })
   ),
   async (req, res, next) => {
     try {
-      const { reason, notes, items } = req.body;
+      const { reason, notes, status = 'SUBMITTED', items } = req.body;
       const adjNo = `ADJ-${Date.now()}`;
 
       const adjustment = await prisma.$transaction(async (tx) => {
@@ -74,17 +76,21 @@ router.post(
             adjNo,
             reason,
             notes,
-            status: 'DRAFT',
+            status,
             createdBy: req.user!.userId,
             items: {
-              create: items.map((item: any) => ({
-                productId: item.productId,
-                binId: item.binId,
-                qtySystem: item.qtySystem,
-                qtyActual: item.qtyActual,
-                difference: item.qtyActual - item.qtySystem,
-                notes: item.notes,
-              })),
+              create: items.map((item: any) => {
+                const qtySystem = item.qtySystem ?? item.systemStock ?? 0;
+                const qtyActual = item.actualStock;
+                return {
+                  productId: item.productId,
+                  binId: item.binId,
+                  qtySystem,
+                  qtyActual,
+                  difference: qtyActual - qtySystem,
+                  notes: item.notes,
+                };
+              }),
             },
           },
           include: { items: true },

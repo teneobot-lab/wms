@@ -131,11 +131,83 @@ router.post('/:id/submit', authenticate, requireOperator, async (req, res, next)
 
 router.post('/:id/approve', authenticate, requireOperator, async (req, res, next) => {
   try {
-    const po = await prisma.purchaseOrder.update({
+    const po = await prisma.purchaseOrder.findUnique({ where: { id: req.params.id } });
+    if (!po) throw new AppError(404, 'PO not found.', 'NOT_FOUND');
+    if (po.status !== 'SUBMITTED') {
+      throw new AppError(400, 'Hanya PO dengan status SUBMITTED yang dapat disetujui.', 'INVALID_STATUS');
+    }
+
+    const updated = await prisma.purchaseOrder.update({
       where: { id: req.params.id },
       data: { status: 'APPROVED' },
     });
-    res.json({ success: true, data: po });
+
+    await prisma.activityLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: 'APPROVE',
+        entity: 'PurchaseOrder',
+        entityId: po.id,
+        notes: `PO-${po.poNo} disetujui`,
+      },
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (err) { next(err); }
+});
+
+router.post('/:id/reject', authenticate, requireOperator, async (req, res, next) => {
+  try {
+    const po = await prisma.purchaseOrder.findUnique({ where: { id: req.params.id } });
+    if (!po) throw new AppError(404, 'PO not found.', 'NOT_FOUND');
+    if (po.status !== 'SUBMITTED') {
+      throw new AppError(400, 'Hanya PO dengan status SUBMITTED yang dapat ditolak.', 'INVALID_STATUS');
+    }
+
+    const { reason } = req.body || {};
+    const updated = await prisma.purchaseOrder.update({
+      where: { id: req.params.id },
+      data: { status: 'REJECTED' },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: 'REJECT',
+        entity: 'PurchaseOrder',
+        entityId: po.id,
+        notes: reason ? `Alasan: ${reason}` : `PO-${po.poNo} ditolak`,
+      },
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (err) { next(err); }
+});
+
+router.post('/:id/cancel', authenticate, requireOperator, async (req, res, next) => {
+  try {
+    const po = await prisma.purchaseOrder.findUnique({ where: { id: req.params.id } });
+    if (!po) throw new AppError(404, 'PO not found.', 'NOT_FOUND');
+    if (['RECEIVED', 'CANCELLED'].includes(po.status)) {
+      throw new AppError(400, 'PO tidak dapat dibatalkan.', 'INVALID_STATUS');
+    }
+
+    const updated = await prisma.purchaseOrder.update({
+      where: { id: req.params.id },
+      data: { status: 'CANCELLED' },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: 'CANCEL',
+        entity: 'PurchaseOrder',
+        entityId: po.id,
+        notes: `PO-${po.poNo} dibatalkan`,
+      },
+    });
+
+    res.json({ success: true, data: updated });
   } catch (err) { next(err); }
 });
 
