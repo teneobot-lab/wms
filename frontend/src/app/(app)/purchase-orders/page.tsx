@@ -7,7 +7,6 @@ import { ColumnDef } from '@tanstack/react-table';
 import { api } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { DataTable } from '@/components/table/DataTable';
-import { Badge } from '@/components/ui/Badge';
 
 interface POPage {
   id: string;
