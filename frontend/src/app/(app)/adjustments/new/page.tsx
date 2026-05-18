@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useMutation } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { SearchAutocomplete } from '@/components/form/SearchAutocomplete';
 import { useToastStore } from '@/stores/uiStore';
+import { SearchAutocomplete } from '@/components/form/SearchAutocomplete';
 
 interface AdjustmentItem {
   productId: string;
@@ -67,7 +68,51 @@ export default function NewAdjustmentPage() {
   const totalAdjustment = items.reduce((sum, item) => sum + item.difference, 0);
   const hasNegative = items.some(item => item.difference < 0);
 
-  const handleSubmit = async (asDraft = false) => {
+  const buildPayload = (asDraft: boolean) => ({
+    reason,
+    notes: notes || undefined,
+    status: asDraft ? 'DRAFT' : 'SUBMITTED',
+    items: items.map(item => ({
+      productId: item.productId,
+      binId: item.binId,
+      systemStock: item.systemStock,
+      actualStock: item.actualStock,
+      difference: item.difference,
+      notes: item.notes || undefined,
+    })),
+  });
+
+  const createDraftMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await api.post('/adjustments', payload);
+      return res.data;
+    },
+    onSuccess: () => {
+      addToast('success', 'Draft adjustment disimpan');
+      router.push('/adjustments');
+    },
+    onError: (err: any) => {
+      addToast('error', err.response?.data?.message || 'Gagal membuat adjustment');
+      setSaving(false);
+    },
+  });
+
+  const createAndSubmitMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await api.post('/adjustments', payload);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      addToast('success', 'Adjustment berhasil diajukan');
+      router.push('/adjustments');
+    },
+    onError: (err: any) => {
+      addToast('error', err.response?.data?.message || 'Gagal mengajukan adjustment');
+      setSaving(false);
+    },
+  });
+
+  const handleSubmit = (asDraft = false) => {
     if (!reason) {
       addToast('error', 'Pilih alasan adjustment');
       return;
@@ -78,26 +123,10 @@ export default function NewAdjustmentPage() {
     }
 
     setSaving(true);
-    try {
-      await api.post('/adjustments', {
-        reason,
-        notes: notes || undefined,
-        status: asDraft ? 'DRAFT' : 'SUBMITTED',
-        items: items.map(item => ({
-          productId: item.productId,
-          binId: item.binId,
-          systemStock: item.systemStock,
-          actualStock: item.actualStock,
-          difference: item.difference,
-          notes: item.notes || undefined,
-        })),
-      });
-      addToast('success', asDraft ? 'Draft adjustment disimpan' : 'Adjustment berhasil diajukan');
-      router.push('/adjustments');
-    } catch {
-      addToast('error', 'Gagal membuat adjustment');
-    } finally {
-      setSaving(false);
+    if (asDraft) {
+      createDraftMutation.mutate(buildPayload(true));
+    } else {
+      createAndSubmitMutation.mutate(buildPayload(false));
     }
   };
 
@@ -113,11 +142,11 @@ export default function NewAdjustmentPage() {
           <button onClick={() => router.back()} className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50">
             Batal
           </button>
-          <button onClick={() => handleSubmit(true)} disabled={saving} className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50">
-            {saving ? '...' : 'Simpan Draft'}
+          <button onClick={() => handleSubmit(true)} disabled={saving} className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50">
+            {saving && !createAndSubmitMutation.isPending ? '...' : 'Simpan Draft'}
           </button>
-          <button onClick={() => handleSubmit(false)} disabled={saving} className="px-4 py-1.5 text-sm bg-[#2C4A5A] text-white rounded hover:bg-[#1A2F3A]">
-            {saving ? '...' : 'Submit Approval'}
+          <button onClick={() => handleSubmit(false)} disabled={saving || createAndSubmitMutation.isPending} className="px-4 py-1.5 text-sm bg-[#2C4A5A] text-white rounded hover:bg-[#1A2F3A] disabled:opacity-50">
+            {createAndSubmitMutation.isPending ? '...' : 'Submit Approval'}
           </button>
         </div>
       </div>

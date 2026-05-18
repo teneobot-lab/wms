@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { useToastStore } from '@/stores/uiStore';
+import { ConfirmDialog } from '@/components/modals/ConfirmDialog';
 
 const statusLabels: Record<string, string> = {
   DRAFT: 'Draft',
@@ -32,8 +33,10 @@ type SOStatus = 'DRAFT' | 'CONFIRMED' | 'PICKING' | 'PACKED' | 'SHIPPED' | 'DELI
 export default function SODetailPage() {
   const router = useRouter();
   const params = useParams();
+  const queryClient = useQueryClient();
   const { addToast } = useToastStore();
   const [activeTab, setActiveTab] = useState('items');
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['sales-orders', params.id],
@@ -43,15 +46,66 @@ export default function SODetailPage() {
     },
   });
 
-  const handleAction = async (action: string) => {
-    try {
-      await api.post(`/sales-orders/${params.id}/${action.toLowerCase()}`);
-      addToast('success', `SO berhasil di-${action}`);
+  const confirmMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post(`/sales-orders/${params.id}/confirm`);
+      return res.data;
+    },
+    onSuccess: () => {
+      addToast('success', 'SO berhasil dikonfirmasi');
+      queryClient.invalidateQueries({ queryKey: ['sales-orders', params.id] });
       refetch();
-    } catch {
-      addToast('error', `Gagal ${action}`);
-    }
-  };
+    },
+    onError: (err: any) => {
+      addToast('error', err.response?.data?.message || 'Gagal mengkonfirmasi SO');
+    },
+  });
+
+  const pickingMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post(`/sales-orders/${params.id}/picking`);
+      return res.data;
+    },
+    onSuccess: () => {
+      addToast('success', 'Picking order berhasil dibuat');
+      queryClient.invalidateQueries({ queryKey: ['sales-orders', params.id] });
+      refetch();
+    },
+    onError: (err: any) => {
+      addToast('error', err.response?.data?.message || 'Gagal membuat picking order');
+    },
+  });
+
+  const shipMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post(`/sales-orders/${params.id}/ship`);
+      return res.data;
+    },
+    onSuccess: () => {
+      addToast('success', 'SO berhasil ditandai terkirim');
+      queryClient.invalidateQueries({ queryKey: ['sales-orders', params.id] });
+      refetch();
+    },
+    onError: (err: any) => {
+      addToast('error', err.response?.data?.message || 'Gagal menandai SO terkirim');
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post(`/sales-orders/${params.id}/cancel`);
+      return res.data;
+    },
+    onSuccess: () => {
+      addToast('success', 'SO berhasil dibatalkan');
+      queryClient.invalidateQueries({ queryKey: ['sales-orders', params.id] });
+      setCancelDialogOpen(false);
+      refetch();
+    },
+    onError: (err: any) => {
+      addToast('error', err.response?.data?.message || 'Gagal membatalkan SO');
+    },
+  });
 
   if (isLoading) {
     return <div className="p-8 text-center text-sm text-gray-500">Memuat...</div>;
@@ -89,22 +143,28 @@ export default function SODetailPage() {
         {status === 'DRAFT' && (
           <>
             <button
-              onClick={() => handleAction('confirm')}
-              className="px-3 py-1.5 text-xs bg-[#2C4A5A] text-white rounded hover:bg-[#1A2F3A]"
+              onClick={() => confirmMutation.mutate()}
+              disabled={confirmMutation.isPending}
+              className="px-3 py-1.5 text-xs bg-[#2C4A5A] text-white rounded hover:bg-[#1A2F3A] disabled:opacity-50"
             >
-              Konfirmasi
+              {confirmMutation.isPending ? '...' : 'Konfirmasi'}
             </button>
-            <button className="px-3 py-1.5 text-xs border border-gray-300 rounded hover:bg-gray-50">
-              Edit
-            </button>
-            <button className="px-3 py-1.5 text-xs text-red-600 border border-red-200 rounded hover:bg-red-50">
+            <button
+              onClick={() => setCancelDialogOpen(true)}
+              disabled={cancelMutation.isPending}
+              className="px-3 py-1.5 text-xs text-red-600 border border-red-200 rounded hover:bg-red-50 disabled:opacity-50"
+            >
               Batalkan
             </button>
           </>
         )}
         {status === 'CONFIRMED' && (
-          <button className="px-3 py-1.5 text-xs bg-[#D97706] text-white rounded hover:bg-amber-700">
-            Buat Picking Order
+          <button
+            onClick={() => pickingMutation.mutate()}
+            disabled={pickingMutation.isPending}
+            className="px-3 py-1.5 text-xs bg-[#D97706] text-white rounded hover:bg-amber-700 disabled:opacity-50"
+          >
+            {pickingMutation.isPending ? '...' : 'Buat Picking Order'}
           </button>
         )}
         {status === 'PICKING' && (
@@ -113,12 +173,25 @@ export default function SODetailPage() {
           </button>
         )}
         {status === 'PACKED' && (
-          <button className="px-3 py-1.5 text-xs bg-green-600 text-white rounded hover:bg-green-700">
-            Tandai Terkirim
+          <button
+            onClick={() => shipMutation.mutate()}
+            disabled={shipMutation.isPending}
+            className="px-3 py-1.5 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+          >
+            {shipMutation.isPending ? '...' : 'Tandai Terkirim'}
           </button>
         )}
         {status === 'DELIVERED' && (
           <span className="text-xs text-green-600">✓ Order telah terkirim</span>
+        )}
+        {(status === 'CONFIRMED' || status === 'PICKING' || status === 'PACKED') && (
+          <button
+            onClick={() => setCancelDialogOpen(true)}
+            disabled={cancelMutation.isPending}
+            className="px-3 py-1.5 text-xs text-red-600 border border-red-200 rounded hover:bg-red-50 disabled:opacity-50"
+          >
+            Batalkan
+          </button>
         )}
       </div>
 
@@ -221,6 +294,18 @@ export default function SODetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Cancel Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={cancelDialogOpen}
+        onClose={() => setCancelDialogOpen(false)}
+        onConfirm={() => cancelMutation.mutate()}
+        title="Batalkan SO"
+        message={`Apakah Anda yakin ingin membatalkan SO-${so.soNo}?`}
+        confirmText="Batalkan"
+        isLoading={cancelMutation.isPending}
+        type="danger"
+      />
     </div>
   );
 }

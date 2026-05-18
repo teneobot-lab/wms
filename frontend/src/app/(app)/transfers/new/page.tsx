@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useMutation } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { SearchAutocomplete } from '@/components/form/SearchAutocomplete';
 import { useToastStore } from '@/stores/uiStore';
+import { SearchAutocomplete } from '@/components/form/SearchAutocomplete';
 
 interface TransferItem {
   productId: string;
@@ -56,39 +57,53 @@ export default function NewTransferPage() {
 
   const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
 
+  const createMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await api.post('/transfers', payload);
+      return res.data;
+    },
+    onSuccess: () => {
+      addToast('success', 'Transfer berhasil');
+      router.push('/transfers');
+    },
+    onError: (err: any) => {
+      addToast('error', err.response?.data?.message || 'Gagal memproses transfer');
+      setSaving(false);
+    },
+  });
+
   const handleSubmit = async () => {
     if (!fromBinId || !toBinId) {
       addToast('error', 'Pilih bin asal dan tujuan');
-      return;
-    }
-    if (items.length === 0) {
-      addToast('error', 'Tambahkan minimal 1 item');
       return;
     }
     if (fromBinId === toBinId) {
       addToast('error', 'Bin asal dan tujuan tidak boleh sama');
       return;
     }
+    if (items.length === 0) {
+      addToast('error', 'Tambahkan minimal 1 item');
+      return;
+    }
+
+    // Validate all items have qty > 0
+    const invalidItems = items.filter(item => !item.productId || item.quantity <= 0);
+    if (invalidItems.length > 0) {
+      addToast('error', 'Semua item harus memiliki produk dan jumlah > 0');
+      return;
+    }
 
     setSaving(true);
-    try {
-      await api.post('/transfers', {
-        fromBinId,
-        toBinId,
-        notes: '',
-        items: items.map(item => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          notes: item.notes || undefined,
-        })),
-      });
-      addToast('success', 'Transfer berhasil diproses');
-      router.push('/transfers');
-    } catch {
-      addToast('error', 'Gagal memproses transfer');
-    } finally {
-      setSaving(false);
-    }
+    createMutation.mutate({
+      sourceBinId: fromBinId,
+      destinationBinId: toBinId,
+      notes: '',
+      items: items.map(item => ({
+        productId: item.productId,
+        qty: item.quantity,
+        notes: item.notes || undefined,
+      })),
+    });
   };
 
   return (
@@ -103,7 +118,7 @@ export default function NewTransferPage() {
           <button onClick={() => router.back()} className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50">
             Batal
           </button>
-          <button onClick={handleSubmit} disabled={saving} className="px-4 py-1.5 text-sm bg-[#2C4A5A] text-white rounded hover:bg-[#1A2F3A]">
+          <button onClick={handleSubmit} disabled={saving} className="px-4 py-1.5 text-sm bg-[#2C4A5A] text-white rounded hover:bg-[#1A2F3A] disabled:opacity-50">
             {saving ? 'Memproses...' : 'Proses Transfer'}
           </button>
         </div>
@@ -123,8 +138,8 @@ export default function NewTransferPage() {
                 value={fromBinName}
                 onChange={setFromBinName}
                 onSelect={(item) => {
-                  setFromBinId(item.id);
-                  setFromBinName(item.label);
+                  setFromBinId(item.id as string);
+                  setFromBinName(item.label as string);
                 }}
                 fuseKeys={['label', 'secondary']}
                 placeholder="Cari bin asal..."
@@ -137,8 +152,8 @@ export default function NewTransferPage() {
                 value={toBinName}
                 onChange={setToBinName}
                 onSelect={(item) => {
-                  setToBinId(item.id);
-                  setToBinName(item.label);
+                  setToBinId(item.id as string);
+                  setToBinName(item.label as string);
                 }}
                 fuseKeys={['label', 'secondary']}
                 placeholder="Cari bin tujuan..."

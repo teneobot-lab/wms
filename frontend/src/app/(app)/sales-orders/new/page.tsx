@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { SearchAutocomplete } from '@/components/form/SearchAutocomplete';
 import { useToastStore } from '@/stores/uiStore';
+import { SearchAutocomplete } from '@/components/form/SearchAutocomplete';
 
 interface SOItem {
   productId: string;
@@ -28,6 +28,38 @@ export default function NewSalesOrderPage() {
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<SOItem[]>([]);
   const [saving, setSaving] = useState(false);
+
+  const createMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await api.post('/sales-orders', payload);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      addToast('success', 'Draft SO berhasil disimpan');
+      router.push(`/sales-orders/${data.data.id}`);
+    },
+    onError: (err: any) => {
+      addToast('error', err.response?.data?.message || 'Gagal membuat Sales Order');
+      setSaving(false);
+    },
+  });
+
+  const confirmMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await api.post('/sales-orders', payload);
+      const soId = res.data.data.id;
+      await api.post(`/sales-orders/${soId}/confirm`);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      addToast('success', 'SO berhasil dibuat dan dikonfirmasi');
+      router.push(`/sales-orders/${data.data.id}`);
+    },
+    onError: (err: any) => {
+      addToast('error', err.response?.data?.message || 'Gagal mengkonfirmasi Sales Order');
+      setSaving(false);
+    },
+  });
 
   const addItem = (product: Record<string, unknown>) => {
     const newItem: SOItem = {
@@ -59,6 +91,20 @@ export default function NewSalesOrderPage() {
 
   const subtotal = items.reduce((sum, item) => sum + item.total, 0);
 
+  const buildPayload = (asDraft: boolean) => ({
+    customerId,
+    orderDate,
+    requiredDate: requiredDate || undefined,
+    notes: notes || undefined,
+    status: asDraft ? 'DRAFT' : 'CONFIRMED',
+    items: items.map(item => ({
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      notes: item.notes || undefined,
+    })),
+  });
+
   const handleSubmit = async (asDraft = false) => {
     if (!customerId) {
       addToast('error', 'Pilih customer terlebih dahulu');
@@ -71,24 +117,12 @@ export default function NewSalesOrderPage() {
 
     setSaving(true);
     try {
-      await api.post('/sales-orders', {
-        customerId,
-        orderDate,
-        requiredDate: requiredDate || undefined,
-        notes: notes || undefined,
-        status: asDraft ? 'DRAFT' : 'CONFIRMED',
-        items: items.map(item => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          notes: item.notes || undefined,
-        })),
-      });
-      addToast('success', asDraft ? 'Draft SO berhasil disimpan' : 'SO berhasil dibuat');
-      router.push('/sales-orders');
+      if (asDraft) {
+        createMutation.mutate(buildPayload(true));
+      } else {
+        confirmMutation.mutate(buildPayload(false));
+      }
     } catch {
-      addToast('error', 'Gagal membuat Sales Order');
-    } finally {
       setSaving(false);
     }
   };
@@ -106,10 +140,10 @@ export default function NewSalesOrderPage() {
             Batal
           </button>
           <button onClick={() => handleSubmit(true)} disabled={saving} className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50">
-            {saving ? '...' : 'Simpan Draft'}
+            {saving && !confirmMutation.isPending ? '...' : 'Simpan Draft'}
           </button>
-          <button onClick={() => handleSubmit(false)} disabled={saving} className="px-4 py-1.5 text-sm bg-[#2C4A5A] text-white rounded hover:bg-[#1A2F3A]">
-            {saving ? '...' : 'Konfirmasi Order'}
+          <button onClick={() => handleSubmit(false)} disabled={saving || confirmMutation.isPending} className="px-4 py-1.5 text-sm bg-[#2C4A5A] text-white rounded hover:bg-[#1A2F3A]">
+            {confirmMutation.isPending ? '...' : 'Konfirmasi Order'}
           </button>
         </div>
       </div>

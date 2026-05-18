@@ -1,8 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
-
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
@@ -37,6 +34,54 @@ export default function NewPurchaseOrderPage() {
     },
   });
 
+  const submitMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await api.post('/purchase-orders', payload);
+      const poId = res.data.data.id;
+      await api.post(`/purchase-orders/${poId}/submit`);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      addToast('success', 'Purchase order submitted successfully!');
+      router.push(`/purchase-orders/${data.data.id}`);
+    },
+    onError: (err: any) => {
+      addToast('error', err.response?.data?.message || 'Failed to submit PO');
+      setSubmitting(false);
+    },
+  });
+
+  const buildPayload = (asDraft: boolean) => {
+    const validItems = rows.filter(r => r.productId && r.qty > 0);
+    return {
+      supplierId: supplier.id,
+      expectedDate: expectedDate || undefined,
+      notes: notes || undefined,
+      status: asDraft ? 'DRAFT' : 'SUBMITTED',
+      items: validItems.map(r => ({
+        productId: r.productId,
+        qtyOrdered: r.qty,
+        unitPrice: r.unitPrice,
+        notes: r.notes || undefined,
+      })),
+    };
+  };
+
+  const handleSaveDraft = () => {
+    if (!supplier) {
+      addToast('warning', 'Please select a supplier.');
+      return;
+    }
+    const validItems = rows.filter(r => r.productId && r.qty > 0);
+    if (validItems.length === 0) {
+      addToast('warning', 'Please add at least one product.');
+      return;
+    }
+
+    setSubmitting(true);
+    createMutation.mutate(buildPayload(true));
+  };
+
   const handleSubmit = () => {
     if (!supplier) {
       addToast('warning', 'Please select a supplier.');
@@ -49,17 +94,7 @@ export default function NewPurchaseOrderPage() {
     }
 
     setSubmitting(true);
-    createMutation.mutate({
-      supplierId: supplier.id,
-      expectedDate: expectedDate || undefined,
-      notes: notes || undefined,
-      items: validItems.map(r => ({
-        productId: r.productId,
-        qtyOrdered: r.qty,
-        unitPrice: r.unitPrice,
-        notes: r.notes || undefined,
-      })),
-    });
+    submitMutation.mutate(buildPayload(false));
   };
 
   return (
@@ -72,8 +107,11 @@ export default function NewPurchaseOrderPage() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => router.push('/purchase-orders')} className="btn btn-secondary btn-default">Cancel</button>
-          <button onClick={handleSubmit} className="btn btn-primary btn-default" disabled={submitting}>
-            {submitting ? 'Creating...' : 'Create PO'}
+          <button onClick={handleSaveDraft} disabled={submitting} className="btn btn-secondary btn-default">
+            {submitting && !submitMutation.isPending ? 'Saving...' : 'Simpan Draft'}
+          </button>
+          <button onClick={handleSubmit} disabled={submitting || submitMutation.isPending} className="btn btn-primary btn-default">
+            {submitMutation.isPending ? 'Submitting...' : 'Submit'}
           </button>
         </div>
       </div>

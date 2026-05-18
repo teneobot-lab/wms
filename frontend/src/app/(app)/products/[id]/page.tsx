@@ -2,14 +2,22 @@
 
 export const dynamic = 'force-dynamic';
 
-
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useToastStore } from '@/stores/uiStore';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { ConfirmDialog } from '@/components/modals/ConfirmDialog';
 
 export default function ProductDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { addToast } = useToastStore();
+
+  const [editMode, setEditMode] = useState(false);
+  const [editData, setEditData] = useState<Record<string, unknown>>({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', params.id],
@@ -37,6 +45,64 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
     enabled: !!params.id,
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const res = await api.put(`/products/${params.id}`, data);
+      return res.data;
+    },
+    onSuccess: () => {
+      addToast('success', 'Product updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['product', params.id] });
+      setEditMode(false);
+    },
+    onError: (err: any) => {
+      addToast('error', err.response?.data?.message || 'Failed to update product');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await api.delete(`/products/${params.id}`);
+    },
+    onSuccess: () => {
+      addToast('success', 'Product deleted successfully');
+      router.push('/products');
+    },
+    onError: (err: any) => {
+      addToast('error', err.response?.data?.message || 'Failed to delete product');
+    },
+  });
+
+  const handleEdit = () => {
+    if (product) {
+      setEditData({
+        name: product.name,
+        sku: product.sku,
+        barcode: product.barcode || '',
+        categoryId: product.category?.id || '',
+        unitId: product.unit?.id || '',
+        costPrice: product.costPrice,
+        sellPrice: product.sellPrice,
+        reorderPoint: product.reorderPoint,
+        minStock: product.minStock,
+        maxStock: product.maxStock,
+        weight: product.weight || '',
+        dimensions: product.dimensions || '',
+        isActive: product.isActive,
+      });
+      setEditMode(true);
+    }
+  };
+
+  const handleSave = () => {
+    updateMutation.mutate(editData);
+  };
+
+  const handleCancelEdit = () => {
+    setEditMode(false);
+    setEditData({});
+  };
+
   if (isLoading) return <div className="p-8 text-center text-text-muted">Loading...</div>;
 
   if (!product) return <div className="p-8 text-center text-text-muted">Product not found.</div>;
@@ -58,9 +124,27 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             {product.isActive ? 'Active' : 'Inactive'}
           </span>
         </div>
-        <button onClick={() => router.push(`/products/${params.id}/edit`)} className="btn btn-secondary btn-default">
-          Edit Product
-        </button>
+        <div className="flex items-center gap-2">
+          {editMode ? (
+            <>
+              <button onClick={handleCancelEdit} className="btn btn-secondary btn-default">
+                Batal
+              </button>
+              <button onClick={handleSave} disabled={updateMutation.isPending} className="btn btn-primary btn-default">
+                {updateMutation.isPending ? 'Menyimpan...' : 'Simpan'}
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={handleEdit} className="btn btn-secondary btn-default">
+                Edit Product
+              </button>
+              <button onClick={() => setDeleteDialogOpen(true)} className="btn btn-danger btn-default">
+                Hapus
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -214,6 +298,18 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={() => deleteMutation.mutate()}
+        title="Hapus Produk"
+        message={`Apakah Anda yakin ingin menghapus produk "${product.name}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Hapus"
+        isLoading={deleteMutation.isPending}
+        type="danger"
+      />
     </div>
   );
 }
