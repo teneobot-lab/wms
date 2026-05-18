@@ -1,6 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+// Use relative path for API calls (Vercel rewrites will proxy to backend)
+const API_BASE_URL = '';
 
 export const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
@@ -33,7 +34,7 @@ api.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refreshToken');
         if (refreshToken) {
-          const res = await axios.post(`${API_BASE_URL}/api/auth/refresh`, { refreshToken });
+          const res = await axios.post(`/api/auth/refresh`, { refreshToken });
           const { accessToken, refreshToken: newRefresh } = res.data.data;
           localStorage.setItem('accessToken', accessToken);
           localStorage.setItem('refreshToken', newRefresh);
