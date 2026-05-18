@@ -115,4 +115,35 @@ router.post(
   }
 );
 
+
+// GET / — list all transfers
+router.get('/', authenticate, async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const skip = (page - 1) * limit;
+
+    const [transfers, total] = await Promise.all([
+      prisma.stockMovement.findMany({
+        where: { type: 'TRANSFER' },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          product: true,
+        },
+      }),
+      prisma.stockMovement.count({ where: { type: 'TRANSFER' } }),
+    ]);
+
+    res.json({
+      success: true,
+      data: transfers,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

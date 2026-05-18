@@ -97,5 +97,33 @@ router.post('/', auth_js_1.authenticate, rbac_js_1.requireOperator, (0, validate
         next(err);
     }
 });
+// GET / — list all transfers
+router.get('/', auth_js_1.authenticate, async (req, res, next) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
+        const [transfers, total] = await Promise.all([
+            database_js_1.prisma.stockMovement.findMany({
+                where: { type: 'TRANSFER' },
+                skip,
+                take: limit,
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    product: true,
+                },
+            }),
+            database_js_1.prisma.stockMovement.count({ where: { type: 'TRANSFER' } }),
+        ]);
+        res.json({
+            success: true,
+            data: transfers,
+            pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+});
 exports.default = router;
 //# sourceMappingURL=routes.js.map

@@ -8,9 +8,6 @@ const router = (0, express_1.Router)();
 router.get('/products', auth_js_1.authenticate, async (req, res, next) => {
     try {
         const q = req.query.q || '';
-        if (!q || q.length < 1) {
-            return res.json({ success: true, data: [] });
-        }
         const products = await database_js_1.prisma.product.findMany({
             where: {
                 isActive: true,
@@ -52,9 +49,6 @@ router.get('/products', auth_js_1.authenticate, async (req, res, next) => {
 router.get('/suppliers', auth_js_1.authenticate, async (req, res, next) => {
     try {
         const q = req.query.q || '';
-        if (!q || q.length < 1) {
-            return res.json({ success: true, data: [] });
-        }
         const suppliers = await database_js_1.prisma.supplier.findMany({
             where: {
                 isActive: true,
@@ -76,9 +70,6 @@ router.get('/suppliers', auth_js_1.authenticate, async (req, res, next) => {
 router.get('/customers', auth_js_1.authenticate, async (req, res, next) => {
     try {
         const q = req.query.q || '';
-        if (!q || q.length < 1) {
-            return res.json({ success: true, data: [] });
-        }
         const customers = await database_js_1.prisma.customer.findMany({
             where: {
                 isActive: true,
@@ -100,9 +91,6 @@ router.get('/customers', auth_js_1.authenticate, async (req, res, next) => {
 router.get('/bins', auth_js_1.authenticate, async (req, res, next) => {
     try {
         const q = req.query.q || '';
-        if (!q || q.length < 1) {
-            return res.json({ success: true, data: [] });
-        }
         const bins = await database_js_1.prisma.bin.findMany({
             where: {
                 code: { contains: q },

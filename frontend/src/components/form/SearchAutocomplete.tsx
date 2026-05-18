@@ -67,7 +67,7 @@ export function SearchAutocomplete({
 
     setIsLoading(true);
     try {
-      const res = await api.get(endpoint);
+      const res = await api.get(`${endpoint}?q=`);
       const data = res.data.data || [];
       cacheRef.current = data;
       cacheTimeRef.current = now;
