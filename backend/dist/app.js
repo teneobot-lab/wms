@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+require("dotenv/config");
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
@@ -20,13 +21,14 @@ const routes_js_3 = __importDefault(require("./modules/product/routes.js"));
 const routes_js_4 = __importDefault(require("./modules/supplier/routes.js"));
 const routes_js_5 = __importDefault(require("./modules/customer/routes.js"));
 const routes_js_6 = __importDefault(require("./modules/warehouse/routes.js"));
-const routes_js_7 = __importDefault(require("./modules/purchase-order/routes.js"));
-const routes_js_8 = __importDefault(require("./modules/sales-order/routes.js"));
-const routes_js_9 = __importDefault(require("./modules/stock-movement/routes.js"));
-const routes_js_10 = __importDefault(require("./modules/transfer/routes.js"));
-const routes_js_11 = __importDefault(require("./modules/adjustment/routes.js"));
-const routes_js_12 = __importDefault(require("./modules/reports/routes.js"));
-const routes_js_13 = __importDefault(require("./modules/search/routes.js"));
+const routes_js_7 = __importDefault(require("./modules/user/routes.js"));
+const routes_js_8 = __importDefault(require("./modules/purchase-order/routes.js"));
+const routes_js_9 = __importDefault(require("./modules/sales-order/routes.js"));
+const routes_js_10 = __importDefault(require("./modules/stock-movement/routes.js"));
+const routes_js_11 = __importDefault(require("./modules/transfer/routes.js"));
+const routes_js_12 = __importDefault(require("./modules/adjustment/routes.js"));
+const routes_js_13 = __importDefault(require("./modules/reports/routes.js"));
+const routes_js_14 = __importDefault(require("./modules/search/routes.js"));
 const app = (0, express_1.default)();
 // ─── MIDDLEWARE ───────────────────────────────────────────────────────────────
 app.use((0, helmet_1.default)());
@@ -54,13 +56,14 @@ app.use('/api/products', routes_js_3.default);
 app.use('/api/suppliers', routes_js_4.default);
 app.use('/api/customers', routes_js_5.default);
 app.use('/api/warehouses', routes_js_6.default);
-app.use('/api/purchase-orders', routes_js_7.default);
-app.use('/api/sales-orders', routes_js_8.default);
-app.use('/api/stock-movements', routes_js_9.default);
-app.use('/api/transfers', routes_js_10.default);
-app.use('/api/adjustments', routes_js_11.default);
-app.use('/api/reports', routes_js_12.default);
-app.use('/api/search', routes_js_13.default);
+app.use('/api/users', routes_js_7.default);
+app.use('/api/purchase-orders', routes_js_8.default);
+app.use('/api/sales-orders', routes_js_9.default);
+app.use('/api/stock-movements', routes_js_10.default);
+app.use('/api/transfers', routes_js_11.default);
+app.use('/api/adjustments', routes_js_12.default);
+app.use('/api/reports', routes_js_13.default);
+app.use('/api/search', routes_js_14.default);
 // ─── 404 HANDLER ──────────────────────────────────────────────────────────────
 app.use((_req, res) => {
     res.status(404).json({

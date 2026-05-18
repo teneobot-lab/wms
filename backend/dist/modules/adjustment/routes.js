@@ -53,16 +53,18 @@ router.get('/:id', auth_js_1.authenticate, async (req, res, next) => {
 router.post('/', auth_js_1.authenticate, rbac_js_1.requireOperator, (0, validate_js_1.validateBody)(zod_1.z.object({
     reason: zod_1.z.string().min(1),
     notes: zod_1.z.string().optional(),
+    status: zod_1.z.enum(['DRAFT', 'SUBMITTED']).optional().default('SUBMITTED'),
     items: zod_1.z.array(zod_1.z.object({
         productId: zod_1.z.string(),
         binId: zod_1.z.string(),
-        qtySystem: zod_1.z.number().min(0),
-        qtyActual: zod_1.z.number().min(0),
+        qtySystem: zod_1.z.number().min(0).optional(),
+        actualStock: zod_1.z.number().min(0),
+        systemStock: zod_1.z.number().min(0).optional(),
         notes: zod_1.z.string().optional(),
     })).min(1),
 })), async (req, res, next) => {
     try {
-        const { reason, notes, items } = req.body;
+        const { reason, notes, status = 'SUBMITTED', items } = req.body;
         const adjNo = `ADJ-${Date.now()}`;
         const adjustment = await database_js_1.prisma.$transaction(async (tx) => {
             const adj = await tx.stockAdjustment.create({
@@ -70,17 +72,21 @@ router.post('/', auth_js_1.authenticate, rbac_js_1.requireOperator, (0, validate
                     adjNo,
                     reason,
                     notes,
-                    status: 'DRAFT',
+                    status,
                     createdBy: req.user.userId,
                     items: {
-                        create: items.map((item) => ({
-                            productId: item.productId,
-                            binId: item.binId,
-                            qtySystem: item.qtySystem,
-                            qtyActual: item.qtyActual,
-                            difference: item.qtyActual - item.qtySystem,
-                            notes: item.notes,
-                        })),
+                        create: items.map((item) => {
+                            const qtySystem = item.qtySystem ?? item.systemStock ?? 0;
+                            const qtyActual = item.actualStock;
+                            return {
+                                productId: item.productId,
+                                binId: item.binId,
+                                qtySystem,
+                                qtyActual,
+                                difference: qtyActual - qtySystem,
+                                notes: item.notes,
+                            };
+                        }),
                     },
                 },
                 include: { items: true },

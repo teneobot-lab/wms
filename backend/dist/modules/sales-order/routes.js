@@ -126,7 +126,7 @@ router.post('/:id/confirm', auth_js_1.authenticate, rbac_js_1.requireOperator, a
         next(err);
     }
 });
-router.post('/:id/pick', auth_js_1.authenticate, rbac_js_1.requireOperator, async (req, res, next) => {
+router.post('/:id/picking', auth_js_1.authenticate, rbac_js_1.requireOperator, async (req, res, next) => {
     try {
         const so = await database_js_1.prisma.salesOrder.findUnique({
             where: { id: req.params.id },
@@ -283,6 +283,42 @@ router.put('/:id', auth_js_1.authenticate, rbac_js_1.requireOperator, async (req
         const updated = await database_js_1.prisma.salesOrder.update({
             where: { id: req.params.id },
             data: req.body,
+        });
+        res.json({ success: true, data: updated });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+router.post('/:id/ship', auth_js_1.authenticate, rbac_js_1.requireOperator, async (req, res, next) => {
+    try {
+        const so = await database_js_1.prisma.salesOrder.findUnique({ where: { id: req.params.id } });
+        if (!so)
+            throw new errorHandler_js_1.AppError(404, 'SO not found.', 'NOT_FOUND');
+        if (!['CONFIRMED', 'PICKING', 'PACKED'].includes(so.status)) {
+            throw new errorHandler_js_1.AppError(400, 'SO tidak dapat dikirim.', 'INVALID_STATUS');
+        }
+        const updated = await database_js_1.prisma.salesOrder.update({
+            where: { id: req.params.id },
+            data: { status: 'SHIPPED', shippedDate: new Date() },
+        });
+        res.json({ success: true, data: updated });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+router.post('/:id/cancel', auth_js_1.authenticate, rbac_js_1.requireOperator, async (req, res, next) => {
+    try {
+        const so = await database_js_1.prisma.salesOrder.findUnique({ where: { id: req.params.id } });
+        if (!so)
+            throw new errorHandler_js_1.AppError(404, 'SO not found.', 'NOT_FOUND');
+        if (['SHIPPED', 'DELIVERED', 'CANCELLED'].includes(so.status)) {
+            throw new errorHandler_js_1.AppError(400, 'SO tidak dapat dibatalkan.', 'INVALID_STATUS');
+        }
+        const updated = await database_js_1.prisma.salesOrder.update({
+            where: { id: req.params.id },
+            data: { status: 'CANCELLED' },
         });
         res.json({ success: true, data: updated });
     }

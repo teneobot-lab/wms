@@ -312,16 +312,6 @@ router.post('/:id/ship', authenticate, requireOperator, async (req, res, next) =
       data: { status: 'SHIPPED', shippedDate: new Date() },
     });
 
-    await prisma.activityLog.create({
-      data: {
-        userId: req.user!.userId,
-        action: 'SHIP',
-        entity: 'SalesOrder',
-        entityId: so.id,
-        notes: `SO-${so.soNo} ditandai terkirim`,
-      },
-    });
-
     res.json({ success: true, data: updated });
   } catch (err) { next(err); }
 });
@@ -337,16 +327,6 @@ router.post('/:id/cancel', authenticate, requireOperator, async (req, res, next)
     const updated = await prisma.salesOrder.update({
       where: { id: req.params.id },
       data: { status: 'CANCELLED' },
-    });
-
-    await prisma.activityLog.create({
-      data: {
-        userId: req.user!.userId,
-        action: 'CANCEL',
-        entity: 'SalesOrder',
-        entityId: so.id,
-        notes: `SO-${so.soNo} dibatalkan`,
-      },
     });
 
     res.json({ success: true, data: updated });

@@ -61,8 +61,8 @@ router.get('/suppliers', authenticate, async (req, res, next) => {
       where: {
         isActive: true,
         OR: [
-          { name: { contains: q, mode: 'insensitive' } },
-          { code: { contains: q, mode: 'insensitive' } },
+          { name: { contains: q } },
+          { code: { contains: q } },
         ],
       },
       take: 12,
@@ -85,8 +85,8 @@ router.get('/customers', authenticate, async (req, res, next) => {
       where: {
         isActive: true,
         OR: [
-          { name: { contains: q, mode: 'insensitive' } },
-          { code: { contains: q, mode: 'insensitive' } },
+          { name: { contains: q } },
+          { code: { contains: q } },
         ],
       },
       take: 12,
@@ -107,7 +107,7 @@ router.get('/bins', authenticate, async (req, res, next) => {
 
     const bins = await prisma.bin.findMany({
       where: {
-        code: { contains: q, mode: 'insensitive' },
+        code: { contains: q },
       },
       include: {
         rack: { include: { zone: { include: { warehouse: true } } } },
@@ -137,8 +137,8 @@ router.get('/categories', authenticate, async (req, res, next) => {
     const where = q
       ? {
           OR: [
-            { name: { contains: q, mode: 'insensitive' } },
-            { code: { contains: q, mode: 'insensitive' } },
+            { name: { contains: q } },
+            { code: { contains: q } },
           ],
         }
       : {};
@@ -169,8 +169,8 @@ router.get('/units', authenticate, async (req, res, next) => {
     const where = q
       ? {
           OR: [
-            { name: { contains: q, mode: 'insensitive' } },
-            { code: { contains: q, mode: 'insensitive' } },
+            { name: { contains: q } },
+            { code: { contains: q } },
           ],
         }
       : {};

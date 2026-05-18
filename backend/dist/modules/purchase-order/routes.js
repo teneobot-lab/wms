@@ -134,11 +134,35 @@ router.post('/:id/submit', auth_js_1.authenticate, rbac_js_1.requireOperator, as
 });
 router.post('/:id/approve', auth_js_1.authenticate, rbac_js_1.requireOperator, async (req, res, next) => {
     try {
-        const po = await database_js_1.prisma.purchaseOrder.update({
+        const po = await database_js_1.prisma.purchaseOrder.findUnique({ where: { id: req.params.id } });
+        if (!po)
+            throw new errorHandler_js_1.AppError(404, 'PO not found.', 'NOT_FOUND');
+        if (po.status !== 'SUBMITTED') {
+            throw new errorHandler_js_1.AppError(400, 'Hanya PO dengan status SUBMITTED yang dapat disetujui.', 'INVALID_STATUS');
+        }
+        const updated = await database_js_1.prisma.purchaseOrder.update({
             where: { id: req.params.id },
             data: { status: 'APPROVED' },
         });
-        res.json({ success: true, data: po });
+        res.json({ success: true, data: updated });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+router.post('/:id/cancel', auth_js_1.authenticate, rbac_js_1.requireOperator, async (req, res, next) => {
+    try {
+        const po = await database_js_1.prisma.purchaseOrder.findUnique({ where: { id: req.params.id } });
+        if (!po)
+            throw new errorHandler_js_1.AppError(404, 'PO not found.', 'NOT_FOUND');
+        if (['RECEIVED', 'CANCELLED'].includes(po.status)) {
+            throw new errorHandler_js_1.AppError(400, 'PO tidak dapat dibatalkan.', 'INVALID_STATUS');
+        }
+        const updated = await database_js_1.prisma.purchaseOrder.update({
+            where: { id: req.params.id },
+            data: { status: 'CANCELLED' },
+        });
+        res.json({ success: true, data: updated });
     }
     catch (err) {
         next(err);

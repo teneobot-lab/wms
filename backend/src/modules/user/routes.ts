@@ -17,10 +17,15 @@ const createUserSchema = z.object({
   password: z.string().min(6).max(100),
   role: z.enum(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'OPERATOR', 'VIEWER']),
   warehouseId: z.string().optional(),
-  isActive: z.boolean().default(true),
 });
 
-const updateUserSchema = createUserSchema.partial().omit({ password: true });
+const updateUserSchema = z.object({
+  name: z.string().min(2).max(100).optional(),
+  email: z.string().email().optional(),
+  role: z.enum(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'OPERATOR', 'VIEWER']).optional(),
+  warehouseId: z.string().optional().nullable(),
+});
+
 const resetPasswordSchema = z.object({
   password: z.string().min(6).max(100),
 });
@@ -29,11 +34,10 @@ const resetPasswordSchema = z.object({
 
 router.get('/', authenticate, async (req, res, next) => {
   try {
-    const { search, role, isActive, page = 1, limit = 50 } = req.query as any;
+    const { search, role, page = 1, limit = 50 } = req.query as any;
     const where: any = {};
 
     if (role) where.role = role;
-    if (isActive !== undefined) where.isActive = isActive === 'true';
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -51,7 +55,6 @@ router.get('/', authenticate, async (req, res, next) => {
           role: true,
           warehouseId: true,
           warehouse: true,
-          isActive: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -85,7 +88,6 @@ router.get('/:id', authenticate, async (req, res, next) => {
         role: true,
         warehouseId: true,
         warehouse: true,
-        isActive: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -117,7 +119,7 @@ router.post('/', authenticate, requireOperator, validateBody(createUserSchema), 
     const user = await prisma.user.create({
       data: {
         ...data,
-        password: hashedPassword,
+        passwordHash: hashedPassword,
       },
       select: {
         id: true,
@@ -126,19 +128,8 @@ router.post('/', authenticate, requireOperator, validateBody(createUserSchema), 
         role: true,
         warehouseId: true,
         warehouse: true,
-        isActive: true,
         createdAt: true,
         updatedAt: true,
-      },
-    });
-
-    await prisma.activityLog.create({
-      data: {
-        userId: req.user!.userId,
-        action: 'CREATE',
-        entity: 'User',
-        entityId: user.id,
-        newValues: user,
       },
     });
 
@@ -180,20 +171,8 @@ router.put('/:id', authenticate, requireOperator, validateBody(updateUserSchema)
         role: true,
         warehouseId: true,
         warehouse: true,
-        isActive: true,
         createdAt: true,
         updatedAt: true,
-      },
-    });
-
-    await prisma.activityLog.create({
-      data: {
-        userId: req.user!.userId,
-        action: 'UPDATE',
-        entity: 'User',
-        entityId: user.id,
-        oldValues: existing,
-        newValues: user,
       },
     });
 
@@ -217,21 +196,12 @@ router.delete('/:id', authenticate, requireOperator, async (req, res, next) => {
       throw new AppError(404, 'User not found.', 'NOT_FOUND');
     }
 
-    await prisma.user.update({
-      where: { id: req.params.id },
-      data: { isActive: false },
-    });
+    // Soft delete - delete all sessions to deactivate
+    await prisma.session.deleteMany({ where: { userId: req.params.id } });
 
-    await prisma.activityLog.create({
-      data: {
-        userId: req.user!.userId,
-        action: 'DELETE',
-        entity: 'User',
-        entityId: req.params.id,
-      },
-    });
+    await prisma.user.delete({ where: { id: req.params.id } });
 
-    res.json({ success: true, message: 'User deactivated.' });
+    res.json({ success: true, message: 'User deleted.' });
   } catch (err) {
     next(err);
   }
@@ -249,17 +219,7 @@ router.post('/:id/reset-password', authenticate, requireOperator, validateBody(r
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
     await prisma.user.update({
       where: { id: req.params.id },
-      data: { password: hashedPassword },
-    });
-
-    await prisma.activityLog.create({
-      data: {
-        userId: req.user!.userId,
-        action: 'UPDATE',
-        entity: 'User',
-        entityId: req.params.id,
-        notes: 'Password reset by admin',
-      },
+      data: { passwordHash: hashedPassword },
     });
 
     res.json({ success: true, message: 'Password reset successfully.' });
