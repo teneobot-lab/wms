@@ -60,7 +60,7 @@ router.get('/suppliers', auth_js_1.authenticate, async (req, res, next) => {
             take: 12,
             orderBy: { name: 'asc' },
         });
-        res.json({ success: true, data: suppliers.map(s => ({ id: s.id, code: s.code, name: s.name, phone: s.phone, email: s.email })) });
+        res.json({ success: true, data: suppliers.map(s => ({ id: s.id, code: s.code, name: s.name, phone: s.phone, email: s.email, label: s.name, secondary: s.code })) });
     }
     catch (err) {
         next(err);
@@ -81,7 +81,7 @@ router.get('/customers', auth_js_1.authenticate, async (req, res, next) => {
             take: 12,
             orderBy: { name: 'asc' },
         });
-        res.json({ success: true, data: customers.map(c => ({ id: c.id, code: c.code, name: c.name, phone: c.phone, email: c.email })) });
+        res.json({ success: true, data: customers.map(c => ({ id: c.id, code: c.code, name: c.name, phone: c.phone, email: c.email, label: c.name, secondary: c.code })) });
     }
     catch (err) {
         next(err);
@@ -110,6 +110,8 @@ router.get('/bins', auth_js_1.authenticate, async (req, res, next) => {
                 zone: b.rack.zone.name,
                 warehouse: b.rack.zone.warehouse.name,
                 fullPath: `${b.rack.zone.warehouse.name} > ${b.rack.zone.name} > ${b.rack.code} > ${b.code}`,
+                label: b.code,
+                secondary: `${b.rack.zone.warehouse.name} > ${b.rack.zone.name} > ${b.rack.code}`,
             })),
         });
     }
@@ -142,6 +144,8 @@ router.get('/categories', auth_js_1.authenticate, async (req, res, next) => {
                 code: c.code,
                 name: c.name,
                 parent: c.parent ? { id: c.parent.id, name: c.parent.name } : null,
+                label: c.name,
+                secondary: c.code,
             })),
         });
     }
@@ -172,6 +176,8 @@ router.get('/units', auth_js_1.authenticate, async (req, res, next) => {
                 id: u.id,
                 code: u.code,
                 name: u.name,
+                label: u.name,
+                secondary: u.code,
             })),
         });
     }

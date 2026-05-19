@@ -264,7 +264,7 @@ export default function CategoriesSettingsPage() {
               </div>
             ) : (
               <SearchAutocomplete
-                endpoint="/categories"
+                endpoint="/search/categories"
                 placeholder="Cari kategori induk..."
                 value=""
                 onSelect={handleParentSelect}
