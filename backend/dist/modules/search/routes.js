@@ -37,6 +37,8 @@ router.get('/products', auth_js_1.authenticate, async (req, res, next) => {
                 totalQty,
                 reorderPoint: p.reorderPoint,
                 isLowStock: totalQty <= p.reorderPoint,
+                label: p.name,
+                secondary: p.sku,
             };
         });
         res.json({ success: true, data });

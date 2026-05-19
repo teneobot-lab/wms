@@ -40,6 +40,8 @@ router.get('/products', authenticate, async (req, res, next) => {
         totalQty,
         reorderPoint: p.reorderPoint,
         isLowStock: totalQty <= p.reorderPoint,
+        label: p.name,
+        secondary: p.sku,
       };
     });
 
