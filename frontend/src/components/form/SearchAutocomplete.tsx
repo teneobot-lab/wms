@@ -49,10 +49,8 @@ export function SearchAutocomplete({
   const cacheRef = useRef<SearchOption[]>([]);
   const cacheTimeRef = useRef<number>(0);
 
-  // Fetch data and initialize Fuse
   const fetchData = useCallback(async () => {
     const now = Date.now();
-    // Re-fetch every 5 minutes
     if (cacheRef.current.length > 0 && now - cacheTimeRef.current < 5 * 60 * 1000) {
       fuseRef.current = new Fuse(cacheRef.current, {
         threshold: 0.35,
@@ -87,12 +85,10 @@ export function SearchAutocomplete({
     }
   }, [endpoint, fuseKeys]);
 
-  // Initialize
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Handle input change
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setQuery(val);
@@ -112,7 +108,6 @@ export function SearchAutocomplete({
     }
   };
 
-  // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!isOpen) {
       if (e.key === 'ArrowDown' && query.length >= minChars) {
@@ -157,7 +152,6 @@ export function SearchAutocomplete({
     inputRef.current?.blur();
   };
 
-  // Highlight matched text
   const highlight = (text: string, matches: readonly FuseResultMatch[] | undefined, key: string) => {
     if (!matches) return text;
     const match = matches.find(m => m.key === key);
@@ -167,17 +161,32 @@ export function SearchAutocomplete({
     let lastIndex = 0;
     for (const [start, end] of match.indices) {
       if (start > lastIndex) result.push(text.slice(lastIndex, start));
-      result.push(<mark key={start} className="bg-accent-100 text-accent-500 font-semibold px-0.5 rounded">{text.slice(start, end + 1)}</mark>);
+      result.push(
+        <mark
+          key={start}
+          style={{
+            background: 'var(--accent-100)',
+            color: 'var(--accent-500)',
+            fontWeight: 600,
+            padding: '0 2px',
+          }}
+        >
+          {text.slice(start, end + 1)}
+        </mark>
+      );
       lastIndex = end + 1;
     }
     if (lastIndex < text.length) result.push(text.slice(lastIndex));
     return <>{result}</>;
   };
 
-  // Click outside to close
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node) && !inputRef.current?.contains(e.target as Node)) {
+      if (
+        panelRef.current &&
+        !panelRef.current.contains(e.target as Node) &&
+        !inputRef.current?.contains(e.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -197,32 +206,45 @@ export function SearchAutocomplete({
         placeholder={placeholder}
         autoFocus={autoFocus}
         disabled={disabled}
-        className="input"
+        className="w-full px-3 py-1.5 text-sm bg-[#f4f4f4] border border-[var(--border)] text-[var(--text-primary)] rounded-none focus:outline-none focus:border-[var(--primary-300)] focus:border-b-2 placeholder:text-[var(--text-muted)]"
         autoComplete="off"
       />
 
-      {/* Loading indicator (subtle) */}
+      {/* Loading indicator */}
       {isLoading && (
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted">
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
           <span className="text-xs">...</span>
         </div>
       )}
 
       {/* Results panel */}
       {isOpen && results.length > 0 && (
-        <div className="autocomplete-panel">
+        <div
+          className="absolute left-0 top-full mt-0.5 z-50 bg-[var(--bg-surface)] border border-[var(--border)] overflow-auto"
+          style={{ minWidth: '100%', maxHeight: 192 }}
+        >
           {results.map((item, index) => (
             <div
               key={item.id}
-              className={`autocomplete-item ${index === activeIndex ? 'active' : ''}`}
               onMouseDown={() => selectItem(item)}
               onMouseEnter={() => setActiveIndex(index)}
+              className={`px-3 py-2 cursor-pointer border-b border-[var(--bg-elevated)] last:border-0 ${
+                index === activeIndex
+                  ? 'bg-[var(--primary-100)]'
+                  : 'hover:bg-[var(--table-hover)]'
+              }`}
             >
               {renderOption ? renderOption(item, query) : (
                 <div>
-                  <div className="text-sm font-medium text-text-primary">{highlight(item.label, fuseRef.current?.search(query).find(r => r.item.id === item.id)?.matches, 'label')}</div>
+                  <div className="text-sm font-medium text-[var(--text-primary)]">
+                    {highlight(
+                      item.label,
+                      fuseRef.current?.search(query).find(r => r.item.id === item.id)?.matches,
+                      'label'
+                    )}
+                  </div>
                   {item.secondary && (
-                    <div className="text-xs text-text-muted mt-0.5">{item.secondary}</div>
+                    <div className="text-[10px] text-[var(--text-muted)] mt-0.5">{item.secondary}</div>
                   )}
                 </div>
               )}
@@ -232,8 +254,11 @@ export function SearchAutocomplete({
       )}
 
       {isOpen && results.length === 0 && query.length >= minChars && (
-        <div className="autocomplete-panel">
-          <div className="autocomplete-item text-text-muted text-sm">No results found</div>
+        <div
+          className="absolute left-0 top-full mt-0.5 z-50 bg-[var(--bg-surface)] border border-[var(--border)] px-3 py-2"
+          style={{ minWidth: '100%' }}
+        >
+          <div className="text-sm text-[var(--text-muted)]">Tidak ada hasil</div>
         </div>
       )}
     </div>

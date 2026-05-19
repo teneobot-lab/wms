@@ -86,7 +86,6 @@ export default function NewTransferPage() {
       return;
     }
 
-    // Validate all items have qty > 0
     const invalidItems = items.filter(item => !item.productId || item.quantity <= 0);
     if (invalidItems.length > 0) {
       addToast('error', 'Semua item harus memiliki produk dan jumlah > 0');
@@ -107,139 +106,170 @@ export default function NewTransferPage() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900">Transfer Bin-to-Bin</h1>
-          <p className="text-xs text-gray-500">Pindahkan stok antar bin/gudang</p>
+    <div className="min-h-screen bg-[var(--bg-base)]">
+      {/* ── Sticky Action Toolbar ── */}
+      <div className="sticky top-0 z-10 bg-[var(--bg-surface)] border-b border-[var(--border)] px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-2 py-1 border border-[var(--border)] rounded-none hover:bg-[var(--table-hover)]"
+          >
+            ← Kembali
+          </button>
+          <div className="h-4 w-px bg-[var(--border)]" />
+          <div>
+            <h1 className="text-sm font-semibold text-[var(--text-primary)] tracking-wide">Transfer Bin-to-Bin</h1>
+            <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest">#PENDING</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => router.back()} className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50">
+          <button
+            onClick={() => router.push('/transfers')}
+            className="px-4 py-1.5 text-xs border border-[var(--border)] bg-[var(--bg-surface)] text-[var(--text-secondary)] rounded-none hover:bg-[var(--table-row-alt)] hover:text-[var(--text-primary)]"
+          >
             Batal
           </button>
-          <button onClick={handleSubmit} disabled={saving} className="px-4 py-1.5 text-sm bg-[#2C4A5A] text-white rounded hover:bg-[#1A2F3A] disabled:opacity-50">
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="px-4 py-1.5 text-xs bg-[var(--primary-700)] text-white rounded-none hover:bg-[var(--primary-900)] disabled:opacity-40"
+          >
             {saving ? 'Memproses...' : 'Proses Transfer'}
           </button>
         </div>
       </div>
 
-      {/* Transfer Info */}
-      <div className="bg-white border border-gray-200 rounded">
-        <div className="px-4 py-3 border-b border-gray-200">
-          <h3 className="text-sm font-medium text-gray-900">Informasi Transfer</h3>
+      {/* ── Page Body ── */}
+      <div className="max-w-6xl mx-auto px-4 py-4 space-y-0">
+
+        {/* ── Transfer Info Section ── */}
+        <div className="border border-[var(--border)] bg-[var(--bg-surface)]">
+          <div className="px-3 py-1.5 bg-[#f4f4f4] border-b border-[var(--border)]">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Informasi Transfer</span>
+          </div>
+          <div className="p-4">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1 tracking-wide uppercase">
+                  Dari Bin (Sumber) *
+                </label>
+                <SearchAutocomplete
+                  endpoint="/search/bins"
+                  value={fromBinName}
+                  onChange={setFromBinName}
+                  onSelect={(item) => {
+                    setFromBinId(item.id as string);
+                    setFromBinName(item.label as string);
+                  }}
+                  fuseKeys={['label', 'secondary']}
+                  placeholder="Cari bin asal..."
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1 tracking-wide uppercase">
+                  Ke Bin (Tujuan) *
+                </label>
+                <SearchAutocomplete
+                  endpoint="/search/bins"
+                  value={toBinName}
+                  onChange={setToBinName}
+                  onSelect={(item) => {
+                    setToBinId(item.id as string);
+                    setToBinName(item.label as string);
+                  }}
+                  fuseKeys={['label', 'secondary']}
+                  placeholder="Cari bin tujuan..."
+                />
+              </div>
+            </div>
+            {fromBinId && toBinId && fromBinId === toBinId && (
+              <div className="mt-3 text-xs text-[var(--danger)] font-medium">
+                ⚠ Bin asal dan tujuan tidak boleh sama
+              </div>
+            )}
+          </div>
         </div>
-        <div className="p-4">
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Dari Bin (Sumber) *</label>
-              <SearchAutocomplete
-                endpoint="/search/bins"
-                value={fromBinName}
-                onChange={setFromBinName}
-                onSelect={(item) => {
-                  setFromBinId(item.id as string);
-                  setFromBinName(item.label as string);
-                }}
-                fuseKeys={['label', 'secondary']}
-                placeholder="Cari bin asal..."
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Ke Bin (Tujuan) *</label>
-              <SearchAutocomplete
-                endpoint="/search/bins"
-                value={toBinName}
-                onChange={setToBinName}
-                onSelect={(item) => {
-                  setToBinId(item.id as string);
-                  setToBinName(item.label as string);
-                }}
-                fuseKeys={['label', 'secondary']}
-                placeholder="Cari bin tujuan..."
-              />
-            </div>
+
+        {/* ── Items Grid Section ── */}
+        <div className="border border-[var(--border)] bg-[var(--bg-surface)]">
+          <div className="px-3 py-1.5 bg-[#f4f4f4] border-b border-[var(--border)] flex items-center justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Item Transfer</span>
+            <span className="text-[10px] text-[var(--text-muted)]">
+              {items.length} item &middot; Total Qty: <span className="font-semibold">{totalQty}</span>
+            </span>
           </div>
 
-          {fromBinId && toBinId && fromBinId === toBinId && (
-            <div className="mt-3 text-xs text-red-600">
-              ⚠ Bin asal dan tujuan tidak boleh sama
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border-collapse">
+              <thead className="sticky top-0 bg-[#f4f4f4] z-[5]">
+                <tr className="text-left text-[10px] text-[var(--text-muted)] uppercase tracking-widest border-b border-[var(--border)]">
+                  <th className="px-2 py-1.5 font-semibold w-8 text-center border-r border-[var(--border)]">#</th>
+                  <th className="px-2 py-1.5 font-semibold border-r border-[var(--border)]" style={{ minWidth: 220 }}>Kode / Nama Barang</th>
+                  <th className="px-2 py-1.5 font-semibold w-24 text-right border-r border-[var(--border)]">Qty</th>
+                  <th className="px-2 py-1.5 font-semibold w-8"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-3 py-8 text-center text-[var(--text-muted)]">
+                      {fromBinId && toBinId && fromBinId !== toBinId
+                        ? 'Tambahkan produk untuk ditransfer'
+                        : 'Pilih bin asal dan tujuan terlebih dahulu'}
+                    </td>
+                  </tr>
+                ) : items.map((item, idx) => (
+                  <tr key={idx} className="border-b border-[var(--border)] hover:bg-[var(--table-hover)]">
+                    <td className="px-2 py-1.5 text-center text-[var(--text-muted)] select-none border-r border-[var(--border)]">{idx + 1}</td>
+                    <td className="px-2 py-1.5 border-r border-[var(--border)]">
+                      <div className="font-medium text-[var(--text-primary)]">{item.productName}</div>
+                      <div className="text-[10px] text-[var(--text-muted)] font-mono">{item.productSku}</div>
+                    </td>
+                    <td className="px-2 py-1.5 border-r border-[var(--border)]">
+                      <input
+                        type="number"
+                        min={1}
+                        value={item.quantity}
+                        onChange={(e) => updateItem(idx, 'quantity', Number(e.target.value))}
+                        className="w-24 px-2 py-1 text-right bg-[#f4f4f4] border border-[var(--border)] text-[var(--text-primary)] rounded-none focus:outline-none focus:border-[var(--primary-300)] focus:border-b-2 font-mono"
+                      />
+                    </td>
+                    <td className="px-2 py-1.5 text-center">
+                      <button
+                        onClick={() => removeItem(idx)}
+                        className="text-[var(--text-muted)] hover:text-[var(--danger)] text-xs w-5 h-5 flex items-center justify-center mx-auto hover:bg-red-50 transition-colors"
+                      >
+                        ✕
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── Add Product ── */}
+          {fromBinId && toBinId && fromBinId !== toBinId && (
+            <div className="p-4 border-t border-[var(--border)]">
+              <div className="max-w-xs">
+                <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1 tracking-wide uppercase">
+                  Tambah Produk
+                </label>
+                <SearchAutocomplete
+                  endpoint="/search/products"
+                  value=""
+                  onChange={() => {}}
+                  onSelect={(item) => {
+                    addItem(item as unknown as Record<string, unknown>);
+                  }}
+                  fuseKeys={['label', 'secondary']}
+                  placeholder="Cari produk untuk ditransfer..."
+                />
+              </div>
             </div>
           )}
         </div>
-      </div>
 
-      {/* Items Grid */}
-      <div className="bg-white border border-gray-200 rounded">
-        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-          <h3 className="text-sm font-medium text-gray-900">Item Transfer</h3>
-          <div className="text-xs text-gray-500">
-            {items.length} item • Total Qty: <span className="font-medium">{totalQty}</span>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 sticky top-0">
-              <tr className="text-left text-xs text-gray-500 uppercase">
-                <th className="px-3 py-2 font-medium w-8">#</th>
-                <th className="px-3 py-2 font-medium">Produk</th>
-                <th className="px-3 py-2 font-medium text-right">Qty</th>
-                <th className="px-3 py-2 font-medium w-8"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {items.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-3 py-8 text-center text-gray-400">
-                    Tambahkan produk untuk ditransfer
-                  </td>
-                </tr>
-              ) : items.map((item, idx) => (
-                <tr key={idx} className="hover:bg-gray-50">
-                  <td className="px-3 py-2 text-xs text-gray-400">{idx + 1}</td>
-                  <td className="px-3 py-2">
-                    <div className="font-medium text-sm">{item.productName}</div>
-                    <div className="text-xs text-gray-400">{item.productSku}</div>
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      min={1}
-                      value={item.quantity}
-                      onChange={(e) => updateItem(idx, 'quantity', Number(e.target.value))}
-                      className="w-24 px-2 py-1 text-sm text-right border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-[#2C4A5A] font-mono"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <button onClick={() => removeItem(idx)} className="text-gray-400 hover:text-red-500 text-sm">
-                      ✕
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Add Item - only show if both bins are selected */}
-        {fromBinId && toBinId && fromBinId !== toBinId && (
-          <div className="p-4 border-t border-gray-200">
-            <div className="max-w-xs">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Tambah Produk</label>
-              <SearchAutocomplete
-                endpoint="/search/products"
-                value=""
-                onChange={() => {}}
-                onSelect={(item) => {
-                  addItem(item as unknown as Record<string, unknown>);
-                }}
-                fuseKeys={['label', 'secondary']}
-                placeholder="Cari produk untuk ditransfer..."
-              />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

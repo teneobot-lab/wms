@@ -102,7 +102,7 @@ export default function NewAdjustmentPage() {
       const res = await api.post('/adjustments', payload);
       return res.data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       addToast('success', 'Adjustment berhasil diajukan');
       router.push('/adjustments');
     },
@@ -131,139 +131,174 @@ export default function NewAdjustmentPage() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900">Stock Opname / Adjustment</h1>
-          <p className="text-xs text-gray-500">Lakukan penyesuaian stok jika ada selisih</p>
+    <div className="min-h-screen bg-[var(--bg-base)]">
+      {/* ── Sticky Action Toolbar ── */}
+      <div className="sticky top-0 z-10 bg-[var(--bg-surface)] border-b border-[var(--border)] px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-2 py-1 border border-[var(--border)] rounded-none hover:bg-[var(--table-hover)]"
+          >
+            ← Kembali
+          </button>
+          <div className="h-4 w-px bg-[var(--border)]" />
+          <div>
+            <h1 className="text-sm font-semibold text-[var(--text-primary)] tracking-wide">Stock Opname / Adjustment</h1>
+            <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest">#PENDING</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => router.back()} className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50">
+          <button
+            onClick={() => router.push('/adjustments')}
+            className="px-4 py-1.5 text-xs border border-[var(--border)] bg-[var(--bg-surface)] text-[var(--text-secondary)] rounded-none hover:bg-[var(--table-row-alt)] hover:text-[var(--text-primary)]"
+          >
             Batal
           </button>
-          <button onClick={() => handleSubmit(true)} disabled={saving} className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50">
-            {saving && !createAndSubmitMutation.isPending ? '...' : 'Simpan Draft'}
+          <button
+            onClick={() => handleSubmit(true)}
+            disabled={saving}
+            className="px-4 py-1.5 text-xs border border-[var(--border)] bg-[var(--bg-surface)] text-[var(--text-secondary)] rounded-none hover:bg-[var(--table-row-alt)] hover:text-[var(--text-primary)] disabled:opacity-40"
+          >
+            {saving && !createAndSubmitMutation.isPending ? 'Menyimpan...' : 'Simpan Draft'}
           </button>
-          <button onClick={() => handleSubmit(false)} disabled={saving || createAndSubmitMutation.isPending} className="px-4 py-1.5 text-sm bg-[#2C4A5A] text-white rounded hover:bg-[#1A2F3A] disabled:opacity-50">
-            {createAndSubmitMutation.isPending ? '...' : 'Submit Approval'}
+          <button
+            onClick={() => handleSubmit(false)}
+            disabled={saving || createAndSubmitMutation.isPending}
+            className="px-4 py-1.5 text-xs bg-[var(--primary-700)] text-white rounded-none hover:bg-[var(--primary-900)] disabled:opacity-40"
+          >
+            {createAndSubmitMutation.isPending ? 'Mengajukan...' : 'Submit Approval'}
           </button>
         </div>
       </div>
 
-      {/* Adjustment Info */}
-      <div className="bg-white border border-gray-200 rounded">
-        <div className="px-4 py-3 border-b border-gray-200">
-          <h3 className="text-sm font-medium text-gray-900">Informasi Adjustment</h3>
-        </div>
-        <div className="p-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Alasan *</label>
-              <select
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#2C4A5A]"
-              >
-                <option value="">Pilih alasan...</option>
-                {adjustmentReasons.map(r => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
+      {/* ── Page Body ── */}
+      <div className="max-w-6xl mx-auto px-4 py-4 space-y-0">
+
+        {/* ── Adjustment Info Section ── */}
+        <div className="border border-[var(--border)] bg-[var(--bg-surface)]">
+          <div className="px-3 py-1.5 bg-[#f4f4f4] border-b border-[var(--border)]">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Informasi Adjustment</span>
+          </div>
+          <div className="p-4">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1 tracking-wide uppercase">
+                  Alasan *
+                </label>
+                <select
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  className="w-full px-3 py-1.5 text-sm bg-[#f4f4f4] border border-[var(--border)] text-[var(--text-primary)] rounded-none focus:outline-none focus:border-[var(--primary-300)] focus:border-b-2"
+                >
+                  <option value="">Pilih alasan...</option>
+                  {adjustmentReasons.map(r => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1 tracking-wide uppercase">
+                  Catatan
+                </label>
+                <input
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Catatan optional"
+                  className="w-full px-3 py-1.5 text-sm bg-[#f4f4f4] border border-[var(--border)] text-[var(--text-primary)] rounded-none focus:outline-none focus:border-[var(--primary-300)] focus:border-b-2 placeholder:text-[var(--text-muted)]"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Catatan</label>
-              <input
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Catatan optional"
-                className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#2C4A5A]"
+          </div>
+        </div>
+
+        {/* ── Items Grid Section ── */}
+        <div className="border border-[var(--border)] bg-[var(--bg-surface)]">
+          <div className="px-3 py-1.5 bg-[#f4f4f4] border-b border-[var(--border)] flex items-center justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Item Adjustment</span>
+            <span className="text-[10px] text-[var(--text-muted)]">
+              {items.length} item &middot; Total:{' '}
+              <span className={hasNegative ? 'text-[var(--danger)] font-semibold' : 'text-[var(--success)] font-semibold'}>
+                {totalAdjustment > 0 ? '+' : ''}{totalAdjustment}
+              </span>
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border-collapse">
+              <thead className="sticky top-0 bg-[#f4f4f4] z-[5]">
+                <tr className="text-left text-[10px] text-[var(--text-muted)] uppercase tracking-widest border-b border-[var(--border)]">
+                  <th className="px-2 py-1.5 font-semibold w-8 text-center border-r border-[var(--border)]">#</th>
+                  <th className="px-2 py-1.5 font-semibold border-r border-[var(--border)]" style={{ minWidth: 180 }}>Produk</th>
+                  <th className="px-2 py-1.5 font-semibold border-r border-[var(--border)]">Bin</th>
+                  <th className="px-2 py-1.5 font-semibold text-right w-20 border-r border-[var(--border)]">Stok Sistem</th>
+                  <th className="px-2 py-1.5 font-semibold text-right w-20 border-r border-[var(--border)]">Stok Aktual</th>
+                  <th className="px-2 py-1.5 font-semibold text-right w-20 border-r border-[var(--border)]">Selisih</th>
+                  <th className="px-2 py-1.5 font-semibold w-8"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-3 py-8 text-center text-[var(--text-muted)]">
+                      Tambahkan item untuk melakukan adjustment
+                    </td>
+                  </tr>
+                ) : items.map((item, idx) => (
+                  <tr key={idx} className="border-b border-[var(--border)] hover:bg-[var(--table-hover)]">
+                    <td className="px-2 py-1.5 text-center text-[var(--text-muted)] select-none border-r border-[var(--border)]">{idx + 1}</td>
+                    <td className="px-2 py-1.5 border-r border-[var(--border)]">
+                      <div className="font-medium text-[var(--text-primary)]">{item.productName}</div>
+                      <div className="text-[10px] text-[var(--text-muted)] font-mono">{item.productSku}</div>
+                    </td>
+                    <td className="px-2 py-1.5 text-[var(--text-secondary)] border-r border-[var(--border)]">{item.binName}</td>
+                    <td className="px-2 py-1.5 text-right font-mono text-[var(--text-secondary)] border-r border-[var(--border)] select-none">{item.systemStock}</td>
+                    <td className="px-2 py-1.5 border-r border-[var(--border)]">
+                      <input
+                        type="number"
+                        value={item.actualStock}
+                        onChange={(e) => updateItem(idx, 'actualStock', Number(e.target.value))}
+                        className="w-20 px-2 py-1 text-right bg-[#f4f4f4] border border-[var(--border)] text-[var(--text-primary)] rounded-none focus:outline-none focus:border-[var(--primary-300)] focus:border-b-2 font-mono"
+                      />
+                    </td>
+                    <td className={`px-2 py-1.5 text-right font-mono font-semibold border-r border-[var(--border)] select-none ${
+                      item.difference > 0 ? 'text-[var(--success)]' : item.difference < 0 ? 'text-[var(--danger)]' : 'text-[var(--text-muted)]'
+                    }`}>
+                      {item.difference > 0 ? '+' : ''}{item.difference}
+                    </td>
+                    <td className="px-2 py-1.5 text-center">
+                      <button
+                        onClick={() => removeItem(idx)}
+                        className="text-[var(--text-muted)] hover:text-[var(--danger)] text-xs w-5 h-5 flex items-center justify-center mx-auto hover:bg-red-50 transition-colors"
+                      >
+                        ✕
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── Add Product ── */}
+          <div className="p-4 border-t border-[var(--border)]">
+            <div className="max-w-xs">
+              <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1 tracking-wide uppercase">
+                Tambah Produk
+              </label>
+              <SearchAutocomplete
+                endpoint="/search/products"
+                value=""
+                onChange={() => {}}
+                onSelect={(item) => {
+                  addItem(item as unknown as Record<string, unknown>, { id: 'BIN-001', label: 'Gudang Utama' });
+                }}
+                fuseKeys={['label', 'secondary']}
+                placeholder="Cari produk..."
               />
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Items Grid */}
-      <div className="bg-white border border-gray-200 rounded">
-        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-          <h3 className="text-sm font-medium text-gray-900">Item Adjustment</h3>
-          <div className="text-xs text-gray-500">
-            {items.length} item • Total: <span className={hasNegative ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
-              {totalAdjustment > 0 ? '+' : ''}{totalAdjustment}
-            </span>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 sticky top-0">
-              <tr className="text-left text-xs text-gray-500 uppercase">
-                <th className="px-3 py-2 font-medium w-8">#</th>
-                <th className="px-3 py-2 font-medium">Produk</th>
-                <th className="px-3 py-2 font-medium">Bin</th>
-                <th className="px-3 py-2 font-medium text-right">Stok Sistem</th>
-                <th className="px-3 py-2 font-medium text-right">Stok Aktual</th>
-                <th className="px-3 py-2 font-medium text-right">Selisih</th>
-                <th className="px-3 py-2 font-medium w-8"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {items.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-3 py-8 text-center text-gray-400">
-                    Tambahkan item untuk melakukan adjustment
-                  </td>
-                </tr>
-              ) : items.map((item, idx) => (
-                <tr key={idx} className="hover:bg-gray-50">
-                  <td className="px-3 py-2 text-xs text-gray-400">{idx + 1}</td>
-                  <td className="px-3 py-2">
-                    <div className="font-medium text-sm">{item.productName}</div>
-                    <div className="text-xs text-gray-400">{item.productSku}</div>
-                  </td>
-                  <td className="px-3 py-2 text-sm">{item.binName}</td>
-                  <td className="px-3 py-2 text-right font-mono">{item.systemStock}</td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      value={item.actualStock}
-                      onChange={(e) => updateItem(idx, 'actualStock', Number(e.target.value))}
-                      className="w-24 px-2 py-1 text-sm text-right border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-[#2C4A5A] font-mono"
-                    />
-                  </td>
-                  <td className={`px-3 py-2 text-right font-mono font-medium ${
-                    item.difference > 0 ? 'text-green-600' : item.difference < 0 ? 'text-red-600' : 'text-gray-400'
-                  }`}>
-                    {item.difference > 0 ? '+' : ''}{item.difference}
-                  </td>
-                  <td className="px-3 py-2">
-                    <button onClick={() => removeItem(idx)} className="text-gray-400 hover:text-red-500 text-sm">
-                      ✕
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Add Item */}
-        <div className="p-4 border-t border-gray-200 grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Tambah Produk</label>
-            <SearchAutocomplete
-              endpoint="/search/products"
-              value=""
-              onChange={() => {}}
-              onSelect={(item) => {
-                addItem(item as unknown as Record<string, unknown>, { id: 'BIN-001', label: 'Gudang Utama' });
-              }}
-              fuseKeys={['label', 'secondary']}
-              placeholder="Cari produk..."
-            />
-          </div>
-        </div>
       </div>
     </div>
   );
