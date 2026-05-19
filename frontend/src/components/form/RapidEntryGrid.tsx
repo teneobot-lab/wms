@@ -1,7 +1,6 @@
 'use client';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { useToastStore } from '@/stores/uiStore';
 
 export interface RapidEntryRow {
   id: string;
@@ -77,26 +76,25 @@ export function RapidEntryGrid({
   const validCount = rows.filter(r => r.productId).length;
 
   return (
-    <div className="border border-[var(--border)] bg-[var(--bg-surface)]">
-      {/* ── Section header ── */}
-      <div className="px-3 py-1.5 bg-[#f4f4f4] border-b border-[var(--border)] flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Detail Barang</span>
-        <span className="text-[10px] text-[var(--text-muted)]">
-          Enter: pilih &amp; fokus qty &middot; &darr;/Enter di qty: baris baru
+    <div className="border border-[var(--border)] bg-white">
+      <div className="px-3 py-2 border-b border-[var(--border)] flex items-center justify-between bg-[var(--table-header)]">
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">Detail Barang</span>
+        <span className="text-[11px] text-[var(--text-muted)]">
+          {validCount} item &middot; Total: <span className="font-mono font-semibold text-[var(--text-primary)]">Rp {totalAmount.toLocaleString('id-ID', { minimumFractionDigits: 0 })}</span>
         </span>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-xs border-collapse">
           <thead>
-            <tr className="text-left text-[10px] text-[var(--text-muted)] uppercase tracking-widest border-b border-[var(--border)] bg-[#f4f4f4]">
-              <th className="px-2 py-1.5 font-semibold text-center border-r border-[var(--border)] w-8">#</th>
-              <th className="px-2 py-1.5 font-semibold border-r border-[var(--border)]" style={{ minWidth: 220 }}>Kode / Nama Barang</th>
-              <th className="px-2 py-1.5 font-semibold text-right border-r border-[var(--border)] w-20">Qty</th>
-              <th className="px-2 py-1.5 font-semibold text-right border-r border-[var(--border)] w-28">Harga Satuan</th>
-              <th className="px-2 py-1.5 font-semibold text-right border-r border-[var(--border)] w-28">Total</th>
-              <th className="px-2 py-1.5 font-semibold border-r border-[var(--border)] w-32">Keterangan</th>
-              <th className="px-2 py-1.5 w-8"></th>
+            <tr className="text-left text-[10px] text-[var(--text-muted)] uppercase tracking-widest border-b border-[var(--border)] bg-[var(--table-header)]">
+              <th className="px-2 py-2 font-semibold text-center border-r border-[var(--border)] w-8">#</th>
+              <th className="px-2 py-2 font-semibold border-r border-[var(--border)]" style={{ minWidth: 240 }}>Kode / Nama Barang</th>
+              <th className="px-2 py-2 font-semibold text-right border-r border-[var(--border)] w-20">Qty</th>
+              <th className="px-2 py-2 font-semibold text-right border-r border-[var(--border)] w-28">Harga Satuan</th>
+              <th className="px-2 py-2 font-semibold text-right border-r border-[var(--border)] w-28">Total</th>
+              <th className="px-2 py-2 font-semibold border-r border-[var(--border)] w-32">Keterangan</th>
+              <th className="px-2 py-2 w-8"></th>
             </tr>
           </thead>
           <tbody>
@@ -119,18 +117,18 @@ export function RapidEntryGrid({
             ))}
           </tbody>
           <tfoot>
-            <tr className="border-t-2 border-[var(--border)] bg-[#f4f4f4]">
-              <td colSpan={4} className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-                Total
+            <tr className="border-t border-[var(--border)] bg-[var(--table-header)]">
+              <td colSpan={4} className="px-3 py-2 text-right">
+                <span className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-semibold">Total</span>
               </td>
-              <td className="px-2 py-2 text-right font-mono font-bold text-[var(--text-primary)]">
-                Rp {totalAmount.toLocaleString('id-ID', { minimumFractionDigits: 0 })}
+              <td className="px-2 py-2 text-right">
+                <span className="font-mono font-bold text-sm text-[var(--text-primary)]">Rp {totalAmount.toLocaleString('id-ID', { minimumFractionDigits: 0 })}</span>
               </td>
               <td colSpan={2} className="px-2 py-1.5">
                 <button
                   onClick={addRow}
                   disabled={disabled}
-                  className="px-3 py-1 text-[11px] border border-[var(--border)] bg-[var(--bg-surface)] text-[var(--text-secondary)] rounded-none hover:bg-[var(--table-row-alt)] hover:text-[var(--text-primary)] disabled:opacity-40 w-full"
+                  className="px-3 py-1 text-[11px] bg-white border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--primary-500)] hover:text-[var(--primary-700)] disabled:opacity-40 w-full"
                 >
                   + Tambah Baris
                 </button>
@@ -166,7 +164,6 @@ function GridRow({
   const [results, setResults] = useState<ProductResult[]>([]);
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
-  const [searching, setSearching] = useState(false);
 
   const qtyInputRef = useRef<HTMLInputElement>(null);
   const priceInputRef = useRef<HTMLInputElement>(null);
@@ -176,7 +173,6 @@ function GridRow({
 
   const searchProducts = useCallback(async (q: string) => {
     if (!q || q.trim().length < 1) { setResults([]); setOpen(false); return; }
-    setSearching(true);
     try {
       const res = await api.get(`${productEndpoint}?q=${encodeURIComponent(q)}`);
       const data: ProductResult[] = res.data.data || [];
@@ -184,7 +180,6 @@ function GridRow({
       setOpen(data.length > 0);
       setActiveIdx(0);
     } catch { setResults([]); }
-    finally { setSearching(false); }
   }, [productEndpoint]);
 
   const selectProduct = useCallback((p: ProductResult) => {
@@ -213,7 +208,6 @@ function GridRow({
       else { onFocusNext(index + 1); }
     }
     if (e.key === 'ArrowUp' && index > 0) { e.preventDefault(); onFocusNext(index - 1); }
-    if (e.key === 'Tab' && !e.shiftKey) { /* natural tab to price */ }
   };
 
   const handlePriceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -230,7 +224,7 @@ function GridRow({
 
   return (
     <tr className="border-b border-[var(--border)] hover:bg-[var(--table-hover)]">
-      <td className="px-2 py-1 text-center text-[var(--text-muted)] border-r border-[var(--border)] select-none">{index + 1}</td>
+      <td className="px-2 py-1 text-center text-[var(--text-muted)] border-r border-[var(--border)] select-none text-[10px]">{index + 1}</td>
       <td className="px-1 py-1 border-r border-[var(--border)] relative">
         <input
           ref={(el) => registerRef(index, el)}
@@ -245,35 +239,31 @@ function GridRow({
           onKeyDown={handleProductKeyDown}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           onFocus={() => { if (query.length >= 1) searchProducts(query); }}
-          placeholder="Kode / Nama Barang..."
           disabled={disabled}
-          className="w-full px-2 py-1 bg-[#f4f4f4] text-[var(--text-primary)] text-xs rounded-none border border-[var(--border)] focus:outline-none focus:border-[var(--primary-300)] focus:border-b-2 placeholder:text-[var(--text-muted)]"
+          className="w-full px-2 py-1 text-xs text-[var(--text-primary)] border border-[var(--border)] bg-white focus:outline-none focus:border-[var(--primary-500)]"
           autoComplete="off"
           style={{ minWidth: 180 }}
         />
         {row.productSku && (
           <div className="text-[10px] text-[var(--text-muted)] font-mono mt-0.5 px-1">{row.productSku}</div>
         )}
-        {searching && (
-          <div className="absolute right-3 top-2 text-[var(--text-muted)] text-[10px]">...</div>
-        )}
         {open && results.length > 0 && (
           <div
-            className="absolute left-0 top-full mt-0.5 z-50 bg-[var(--bg-surface)] border border-[var(--border)] overflow-hidden"
-            style={{ minWidth: 320, maxHeight: 240, overflowY: 'auto' }}
+            className="absolute left-0 top-full mt-0.5 z-50 bg-white border border-[var(--border)]"
+            style={{ minWidth: 320, maxHeight: 192, overflowY: 'auto' }}
           >
             {results.map((r, i) => (
               <div
                 key={r.id}
-                className={`px-3 py-2 cursor-pointer border-b border-[var(--bg-elevated)] last:border-0 flex items-center justify-between gap-2 ${
-                  i === activeIdx ? 'bg-[var(--primary-100)] text-[var(--primary-900)]' : 'hover:bg-[var(--table-hover)]'
+                className={`px-3 py-2 cursor-pointer border-b border-[var(--border)] last:border-0 flex items-center justify-between gap-3 ${
+                  i === activeIdx ? 'bg-[var(--primary-100)]' : 'hover:bg-[var(--table-hover)]'
                 }`}
                 onMouseDown={() => selectProduct(r)}
                 onMouseEnter={() => setActiveIdx(i)}
               >
                 <div className="min-w-0">
-                  <div className="font-medium text-xs truncate">{r.name}</div>
-                  <div className="text-[10px] text-[var(--text-muted)] font-mono">{r.sku} &middot; {r.unit}</div>
+                  <div className="font-medium text-xs text-[var(--text-primary)] truncate">{r.name}</div>
+                  <div className="text-[10px] text-[var(--text-muted)] font-mono">{r.sku} · {r.unit}</div>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <div className="text-[10px] font-mono">
@@ -296,7 +286,7 @@ function GridRow({
           onChange={(e) => onUpdate({ qty: parseFloat(e.target.value) || 0 })}
           onKeyDown={handleQtyKeyDown}
           onFocus={(e) => e.target.select()}
-          className="w-full px-2 py-1 text-right font-mono text-xs bg-[#f4f4f4] text-[var(--text-primary)] border border-[var(--border)] rounded-none focus:outline-none focus:border-[var(--primary-300)] focus:border-b-2"
+          className="w-full px-2 py-1 text-right font-mono text-xs text-[var(--text-primary)] border border-[var(--border)] bg-white focus:outline-none focus:border-[var(--primary-500)]"
           style={{ width: 68 }}
           min="0.001" step="1" disabled={disabled || !row.productId}
         />
@@ -309,13 +299,13 @@ function GridRow({
           onChange={(e) => onUpdate({ unitPrice: parseFloat(e.target.value) || 0 })}
           onKeyDown={handlePriceKeyDown}
           onFocus={(e) => e.target.select()}
-          className="w-full px-2 py-1 text-right font-mono text-xs bg-[#f4f4f4] text-[var(--text-primary)] border border-[var(--border)] rounded-none focus:outline-none focus:border-[var(--primary-300)] focus:border-b-2"
+          className="w-full px-2 py-1 text-right font-mono text-xs text-[var(--text-primary)] border border-[var(--border)] bg-white focus:outline-none focus:border-[var(--primary-500)]"
           style={{ width: 100 }}
           min="0" step="100" disabled={disabled || !row.productId}
         />
       </td>
       <td className="px-2 py-1 text-right font-mono text-xs font-semibold text-[var(--text-primary)] border-r border-[var(--border)] select-none">
-        {row.totalPrice > 0 ? `Rp ${row.totalPrice.toLocaleString('id-ID', { minimumFractionDigits: 0 })}` : '-'}
+        {row.totalPrice > 0 ? `Rp ${row.totalPrice.toLocaleString('id-ID', { minimumFractionDigits: 0 })}` : '—'}
       </td>
       <td className="px-1 py-1 border-r border-[var(--border)]">
         <input
@@ -324,9 +314,9 @@ function GridRow({
           value={row.notes}
           onChange={(e) => onUpdate({ notes: e.target.value })}
           onKeyDown={handleNotesKeyDown}
-          className="w-full px-2 py-1 text-xs bg-[#f4f4f4] text-[var(--text-primary)] border border-[var(--border)] rounded-none focus:outline-none focus:border-[var(--primary-300)] focus:border-b-2"
+          className="w-full px-2 py-1 text-xs text-[var(--text-primary)] border border-[var(--border)] bg-white focus:outline-none focus:border-[var(--primary-500)]"
           style={{ width: 112 }}
-          placeholder="Keterangan..." disabled={disabled || !row.productId}
+          disabled={disabled || !row.productId}
         />
       </td>
       <td className="px-1 py-1 text-center">
@@ -334,7 +324,7 @@ function GridRow({
           onClick={onDelete}
           disabled={disabled}
           tabIndex={-1}
-          className="text-[var(--text-muted)] hover:text-[var(--danger)] text-xs w-5 h-5 flex items-center justify-center mx-auto hover:bg-red-50 transition-colors"
+          className="text-[var(--text-muted)] hover:text-[var(--danger)] text-xs w-5 h-5 flex items-center justify-center mx-auto"
         >
           ✕
         </button>
